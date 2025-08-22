@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "description": "A modern file search application",
   "main": "src/index.js",
+  "$schema": "http://json.schemastore.org/package",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
