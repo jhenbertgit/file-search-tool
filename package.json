@@ -1,0 +1,40 @@
+{
+  "name": "file-search",
+  "productName": "File Search",
+  "version": "1.0.0",
+  "description": "A modern file search application",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "publish": "electron-forge publish",
+    "lint": "echo \"No linting configured\""
+  },
+  "keywords": [
+    "file",
+    "search",
+    "electron"
+  ],
+  "author": {
+    "name": "Jhenbert Villamucho",
+    "email": "jvv205756@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "chokidar": "^3.6.0",
+    "electron-squirrel-startup": "^1.0.1",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^7.8.3",
+    "@electron-forge/maker-deb": "^7.8.3",
+    "@electron-forge/maker-rpm": "^7.8.3",
+    "@electron-forge/maker-squirrel": "^7.8.3",
+    "@electron-forge/maker-zip": "^7.8.3",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.3",
+    "@electron-forge/plugin-fuses": "^7.8.3",
+    "@electron/fuses": "^1.8.0",
+    "electron": "37.3.1"
+  }
+}
