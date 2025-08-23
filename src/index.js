@@ -11,6 +11,9 @@ const path = require("path");
 const fs = require("fs-extra");
 const chokidar = require("chokidar");
 
+// Set version as global for access in renderer
+process.env.APP_VERSION = require("../package.json").version;
+
 // Environment detection
 const isDev =
   process.env.NODE_ENV === "development" ||

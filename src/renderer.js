@@ -21,6 +21,8 @@ document.addEventListener("DOMContentLoaded", function () {
   let lastProgressUpdate = Date.now();
   let progressInterval;
 
+  loadAppVersion();
+
   function startProgressFallback() {
     let dots = 0;
     progressInterval = setInterval(() => {
@@ -42,6 +44,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function stopProgressFallback() {
     clearInterval(progressInterval);
+  }
+
+  async function loadAppVersion() {
+    try {
+      const version = await window.api.getAppVersion();
+      const versionElement = document.getElementById("app-version");
+      if (versionElement) {
+        versionElement.textContent = `v${version}`;
+      }
+    } catch (error) {
+      console.log("Version load failed, using default");
+      // Keep the default "v1.0" text
+    }
   }
 
   // Add keyboard shortcuts
