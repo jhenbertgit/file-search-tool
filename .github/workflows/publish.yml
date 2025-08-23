@@ -1,23 +1,43 @@
-name: Publish Release
+name: Build Windows Release
 
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest # Use Windows runner
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: "18"
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
-      - name: Build
-        run: npm run make
+
+      - name: Build Windows package
+        run: npm run package:win
+        env:
+          ELECTRON_FORCE_PLATFORM: win32
+
+      - name: Create Windows installer
+        run: npx electron-forge make --platform win32
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows-installer
+          path: |
+            out/make/squirrel.windows/*.exe
+            out/make/zip/windows/*.zip
+
       - name: Publish to GitHub Releases
-        run: npm run publish
+        run: npx electron-forge publish --platform win32
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

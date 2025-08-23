@@ -31,20 +31,27 @@ module.exports = {
         setupIcon: "./assets/icon.ico",
         noMsi: true,
         loadingGif: "./assets/installer.gif",
+        createDesktopShortcut: true,
+        createStartMenuShortcut: true,
+        shortcutName: "File Search",
       },
     },
     {
       name: "@electron-forge/maker-zip",
-      platforms: ["darwin"],
+      platforms: ["win32"],
     },
-    {
-      name: "@electron-forge/maker-deb",
-      config: {},
-    },
-    {
-      name: "@electron-forge/maker-rpm",
-      config: {},
-    },
+    // {
+    //   name: "@electron-forge/maker-zip",
+    //   platforms: ["darwin"],
+    // },
+    // {
+    //   name: "@electron-forge/maker-deb",
+    //   config: {},
+    // },
+    // {
+    //   name: "@electron-forge/maker-rpm",
+    //   config: {},
+    // },
   ],
   plugins: [
     {
@@ -63,18 +70,18 @@ module.exports = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-  publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        repository: {
-          owner: "jhenbertgit",
-          name: "file-search-tool",
-        },
-        prerelease: false,
-        draft: true,
-        authToken: process.env.GITHUB_TOKEN,
-      },
-    },
-  ],
+  // publishers: [
+  //   {
+  //     name: "@electron-forge/publisher-github",
+  //     config: {
+  //       repository: {
+  //         owner: "jhenbertgit",
+  //         name: "file-search-tool",
+  //       },
+  //       prerelease: false,
+  //       draft: true,
+  //       authToken: process.env.GITHUB_TOKEN,
+  //     },
+  //   },
+  // ],
 };
