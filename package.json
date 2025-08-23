@@ -1,7 +1,7 @@
 {
   "name": "file-search",
   "productName": "File Search",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.4",
   "description": "A modern file search application",
   "main": "src/index.js",
   "$schema": "http://json.schemastore.org/package",
