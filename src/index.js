@@ -155,7 +155,6 @@ function createWindowsMenu() {
     {
       label: "&File",
       submenu: [
-        // In your main process (index.js) - VERIFY this code exists
         {
           label: "&Open Directory",
           accelerator: "Ctrl+O",
