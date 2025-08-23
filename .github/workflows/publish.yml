@@ -40,8 +40,8 @@ jobs:
         with:
           name: windows-installer
           path: |
-            out/make/squirrel.windows/*.exe
-            out/make/zip/windows/*.zip
+            out/make/squirrel.windows/x64/*.exe
+            out/make/zip/win32/x64/*.zip
 
       - name: Publish to GitHub Releases
         run: npx electron-forge publish --platform win32
