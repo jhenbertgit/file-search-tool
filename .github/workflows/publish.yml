@@ -8,7 +8,7 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -19,7 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci
@@ -37,7 +37,7 @@ jobs:
           path: |
             out/make/squirrel.windows/x64/*.exe
             out/make/zip/win32/x64/*.zip
-            out/file-search-win32-x64/
+            out/File Search Tool-win32-x64/
 
       - name: Publish to GitHub Releases
         run: npx electron-forge publish --platform win32

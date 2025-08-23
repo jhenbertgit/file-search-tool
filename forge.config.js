@@ -5,7 +5,7 @@ module.exports = {
   packagerConfig: {
     name: "File Search Tool",
     executableName: "file-search-tool",
-    icon: "./assets/icon", // No file extension, Forge will detect appropriate format
+    icon: "./assets/icon",
     asar: true,
     appBundleId: "com.jhenbert.filesearchtool",
     appCategoryType: "public.app-category.productivity",
@@ -33,33 +33,22 @@ module.exports = {
         loadingGif: "./assets/installer.gif",
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
-        shortcutName: "File Search",
+        shortcutName: "File Search Tool",
+        setupExe: "FileSearchToolSetup.exe",
+        iconUrl:
+          "https://raw.githubusercontent.com/jhenbertgit/file-search-tool/main/assets/icon.ico",
       },
     },
     {
       name: "@electron-forge/maker-zip",
       platforms: ["win32"],
     },
-    // {
-    //   name: "@electron-forge/maker-zip",
-    //   platforms: ["darwin"],
-    // },
-    // {
-    //   name: "@electron-forge/maker-deb",
-    //   config: {},
-    // },
-    // {
-    //   name: "@electron-forge/maker-rpm",
-    //   config: {},
-    // },
   ],
   plugins: [
     {
       name: "@electron-forge/plugin-auto-unpack-natives",
       config: {},
     },
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
@@ -78,8 +67,8 @@ module.exports = {
           owner: "jhenbertgit",
           name: "file-search-tool",
         },
-        prerelease: false,
-        draft: true,
+        prerelease: true,
+        draft: false,
       },
     },
   ],

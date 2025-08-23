@@ -15,7 +15,6 @@ document.addEventListener("DOMContentLoaded", function () {
   // State
   let searchType = "file-content";
   let isSearching = false;
-  let currentResults = [];
 
   // Event Listeners
   browseButton.addEventListener("click", async () => {
@@ -86,7 +85,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Set up IPC listeners
   window.api.onSearchResults((results) => {
-    currentResults = results;
     displayResults(results);
     isSearching = false;
     updateUIState();
@@ -240,7 +238,6 @@ document.addEventListener("DOMContentLoaded", function () {
           </li>
       `;
     resultsCount.textContent = "(0 found)";
-    currentResults = [];
   }
 
   function updateUIState() {

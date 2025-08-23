@@ -1,12 +1,66 @@
 const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const is = require("electron-is");
+const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs-extra");
 const chokidar = require("chokidar");
 
+// Handle Squirrel events for Windows installer
+if (require("electron-squirrel-startup")) {
+  app.quit();
+}
+
+function handleSquirrelEvent() {
+  if (process.argv.length === 1 || !is.windows()) {
+    return false;
+  }
+
+  const appFolder = path.resolve(process.execPath, "..");
+  const rootAtomFolder = path.resolve(appFolder, "..");
+  const updateExe = path.resolve(path.join(rootAtomFolder, "Update.exe"));
+  const exeName = path.basename(process.execPath);
+  const spawnUpdate = function (args) {
+    try {
+      const spawnedProcess = spawn(updateExe, args, { detached: true });
+      spawnedProcess.on("close", () => app.quit());
+      return true;
+    } catch (error) {
+      console.error("Squirrel event error:", error);
+      return false;
+    }
+  };
+
+  const squirrelEvent = process.argv[1];
+  switch (squirrelEvent) {
+    case "--squirrel-install":
+    case "--squirrel-updated":
+      // Install desktop and start menu shortcuts
+      spawnUpdate(["--createShortcut", exeName]);
+      setTimeout(app.quit, 1000);
+      return true;
+
+    case "--squirrel-uninstall":
+      // Remove desktop and start menu shortcuts
+      spawnUpdate(["--removeShortcut", exeName]);
+      setTimeout(app.quit, 1000);
+      return true;
+
+    case "--squirrel-obsolete":
+      app.quit();
+      return true;
+  }
+
+  return false;
+}
+
+if (handleSquirrelEvent()) {
+  // Squirrel handled the event, quit the app
+  process.exit(0);
+}
+
 let mainWindow;
 let watcher;
 let isSearching = false;
-let currentSearchParams = null;
 
 const createWindow = () => {
   mainWindow = new BrowserWindow({
@@ -62,7 +116,6 @@ ipcMain.on(
 
     try {
       isSearching = true;
-      currentSearchParams = { directory, searchTerm, searchType, fileType };
 
       if (watcher) {
         watcher.close();
@@ -228,7 +281,6 @@ ipcMain.on(
       mainWindow.webContents.send("search-error", { message: error.message });
     } finally {
       isSearching = false;
-      currentSearchParams = null;
     }
   }
 );
