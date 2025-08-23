@@ -3,34 +3,40 @@ name: Build Windows Release
 on:
   push:
     tags: ["v*"]
-  workflow_dispatch: # Allows manual triggering
+  # workflow_dispatch: manually trigger
 
 jobs:
   build-windows:
-    runs-on: windows-latest # Use Windows runner
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "20"
           cache: "npm"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: npm-
 
       - name: Install dependencies
         run: npm ci
 
       - name: Build Windows package
-        run: npm run package:win
-        env:
-          ELECTRON_FORCE_PLATFORM: win32
+        run: npm run package
 
       - name: Create Windows installer
         run: npx electron-forge make --platform win32
+
       - name: Upload Windows artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: windows-installer
           path: |
