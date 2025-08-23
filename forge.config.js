@@ -70,18 +70,18 @@ module.exports = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
-  // publishers: [
-  //   {
-  //     name: "@electron-forge/publisher-github",
-  //     config: {
-  //       repository: {
-  //         owner: "jhenbertgit",
-  //         name: "file-search-tool",
-  //       },
-  //       prerelease: false,
-  //       draft: true,
-  //       authToken: process.env.GITHUB_TOKEN,
-  //     },
-  //   },
-  // ],
+  publishers: [
+    {
+      name: "@electron-forge/publisher-github",
+      config: {
+        repository: {
+          owner: "jhenbertgit",
+          name: "file-search-tool",
+        },
+        prerelease: false,
+        draft: true,
+        authToken: process.env.GITHUB_TOKEN,
+      },
+    },
+  ],
 };
