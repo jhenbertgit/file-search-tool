@@ -13,7 +13,7 @@
     "package:win": "electron-forge package --platform win32",
     "make:win": "electron-forge make --platform win32",
     "publish:win": "electron-forge publish --platform win32",
-    "lint": "echo \"No linting configured\""
+    "lint": "eslint src/**/*.js"
   },
   "keywords": [
     "file",

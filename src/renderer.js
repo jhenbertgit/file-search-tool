@@ -17,6 +17,33 @@ document.addEventListener("DOMContentLoaded", function () {
   let searchType = "file-content";
   let isSearching = false;
 
+  // Add a fallback progress indicator
+  let lastProgressUpdate = Date.now();
+  let progressInterval;
+
+  function startProgressFallback() {
+    let dots = 0;
+    progressInterval = setInterval(() => {
+      if (!isSearching) {
+        clearInterval(progressInterval);
+        return;
+      }
+
+      dots = (dots + 1) % 4;
+      const progressElement = document.querySelector(".progress-text");
+      if (progressElement) {
+        // If it's been more than 2 seconds since last real progress update, show fallback
+        if (Date.now() - lastProgressUpdate > 2000) {
+          progressElement.textContent = `Searching${".".repeat(dots)}`;
+        }
+      }
+    }, 500);
+  }
+
+  function stopProgressFallback() {
+    clearInterval(progressInterval);
+  }
+
   // Add keyboard shortcuts
   document.addEventListener("keydown", (event) => {
     // Ctrl+O - Open directory
@@ -58,11 +85,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 150);
   });
 
-  // FINAL FIX: Replace your window.api.onDirectorySelected with this
+  // FINAL FIX: Directory selection handler
   window.api.onDirectorySelected((...args) => {
     console.log("IPC args received:", args);
 
-    // The issue is that we're getting (event) instead of (event, data)
     // Extract the directory from the event object if needed
     let directory;
 
@@ -94,72 +120,29 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 1000);
   });
 
-  // Add a fallback progress indicator
-  let lastProgressUpdate = Date.now();
-  let progressInterval;
-
-  function startProgressFallback() {
-    let dots = 0;
-    progressInterval = setInterval(() => {
-      if (!isSearching) {
-        clearInterval(progressInterval);
-        return;
-      }
-
-      dots = (dots + 1) % 4;
-      const progressElement = document.querySelector(".progress-text");
-      if (progressElement) {
-        // If it's been more than 2 seconds since last real progress update, show fallback
-        if (Date.now() - lastProgressUpdate > 2000) {
-          progressElement.textContent = `Searching${".".repeat(dots)}`;
-        }
-      }
-    }, 500);
-  }
-
-  function stopProgressFallback() {
-    clearInterval(progressInterval);
-  }
-
-  // Also update your performSearch function to show initial progress
-  function performSearch(directory, searchTerm, searchType, fileType) {
-    isSearching = true;
-    updateUIState();
-    startProgressFallback();
-
-    // Show searching state with initial progress
-    resultsList.innerHTML = `
-    <li class="searching">
-      <div class="spinner"></div>
-      <p>Searching for "${searchTerm}"${fileType ? ` in ${fileType} files` : ""}...</p>
-      <div class="progress-text">Initializing search...</div>
-    </li>
-  `;
-
-    // Visual feedback for search start
-    searchButton.style.transform = "scale(0.95)";
-    setTimeout(() => {
-      searchButton.style.transform = "scale(1)";
-    }, 150);
-
-    window.api.searchFiles({ directory, searchTerm, searchType, fileType });
-  }
-
-  // Event Listeners
+  // Browse button handler
   browseButton.addEventListener("click", async () => {
     if (isSearching) return;
 
-    const directory = await window.api.openDirectoryDialog();
-    if (directory) {
-      directoryInput.value = directory;
-      // Visual feedback
-      directoryInput.style.backgroundColor = "#e8f5e8";
-      setTimeout(() => {
-        directoryInput.style.backgroundColor = "";
-      }, 1000);
+    try {
+      const directory = await window.api.openDirectoryDialog();
+      console.log("Directory from dialog:", directory, typeof directory);
+
+      if (directory && typeof directory === "string") {
+        directoryInput.value = directory;
+        // Visual feedback
+        directoryInput.style.backgroundColor = "#e8f5e8";
+        setTimeout(() => {
+          directoryInput.style.backgroundColor = "";
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Error opening directory dialog:", error);
+      showError("Failed to open directory dialog");
     }
   });
 
+  // Search button handler
   searchButton.addEventListener("click", () => {
     if (isSearching) {
       stopSearch();
@@ -233,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Set up IPC listeners - UPDATED VERSION
+  // Set up IPC listeners
   window.api.onSearchResults((results) => {
     stopProgressFallback();
     displayResults(results);
@@ -248,10 +231,40 @@ document.addEventListener("DOMContentLoaded", function () {
     updateUIState();
   });
 
-  window.api.onSearchProgress((progressData) => {
-    console.log("Progress update received:", progressData);
-    lastProgressUpdate = Date.now();
-    updateProgress(progressData);
+  window.api.onSearchProgress((...args) => {
+    console.log("Progress IPC args:", args);
+
+    // Extract progress data from different possible formats
+    let progressData;
+
+    if (args.length === 1 && args[0] && typeof args[0] === "object") {
+      if (args[0].sender) {
+        // We got the event object instead of progress data
+        console.error(
+          "IPC error: Received event object instead of progress data"
+        );
+        progressData = null;
+      } else {
+        // We got the progress data directly
+        progressData = args[0];
+      }
+    } else if (args.length === 2 && args[1] && typeof args[1] === "object") {
+      // We got (event, data) format
+      progressData = args[1];
+    }
+
+    if (progressData && typeof progressData === "object") {
+      console.log("Processing progress data:", progressData);
+      lastProgressUpdate = Date.now();
+      updateProgress(progressData);
+    } else {
+      console.log("No valid progress data, using fallback");
+      // Fallback to generic message
+      const progressElement = document.querySelector(".progress-text");
+      if (progressElement) {
+        progressElement.textContent = "Searching files...";
+      }
+    }
   });
 
   // Tooltip functionality
@@ -268,10 +281,34 @@ document.addEventListener("DOMContentLoaded", function () {
     return fileTypeSelect.value;
   }
 
+  function performSearch(directory, searchTerm, searchType, fileType) {
+    isSearching = true;
+    updateUIState();
+    startProgressFallback();
+
+    // Show searching state with initial progress
+    resultsList.innerHTML = `
+      <li class="searching">
+        <div class="spinner"></div>
+        <p>Searching for "${searchTerm}"${fileType ? ` in ${fileType} files` : ""}...</p>
+        <div class="progress-text">Initializing search...</div>
+      </li>
+    `;
+
+    // Visual feedback for search start
+    searchButton.style.transform = "scale(0.95)";
+    setTimeout(() => {
+      searchButton.style.transform = "scale(1)";
+    }, 150);
+
+    window.api.searchFiles({ directory, searchTerm, searchType, fileType });
+  }
+
   function stopSearch() {
     window.api.stopSearch();
     isSearching = false;
     updateUIState();
+    stopProgressFallback();
 
     resultsList.innerHTML = `
       <li class="no-results">
@@ -287,49 +324,39 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 300);
   }
 
-  // Fixed progress update function
+  // Robust progress update function
   function updateProgress(progressData) {
     const progressElement = document.querySelector(".progress-text");
     if (!progressElement) return;
 
-    // Handle cases where progressData might be undefined or malformed
-    if (!progressData || typeof progressData !== "object") {
+    // Handle cases where progressData might be malformed
+    if (
+      !progressData ||
+      typeof progressData !== "object" ||
+      progressData.sender
+    ) {
       progressElement.textContent = "Searching files...";
       return;
     }
 
-    // Extract values with defaults
-    const scanned = progressData.scanned || 0;
-    const matched = progressData.matched || 0;
-    const total = progressData.total || 0;
+    // Extract values with safe defaults
+    const scanned =
+      typeof progressData.scanned === "number" ? progressData.scanned : 0;
+    const matched =
+      typeof progressData.matched === "number" ? progressData.matched : 0;
+    const total =
+      typeof progressData.total === "number" ? progressData.total : 0;
 
-    // Calculate percentage if not provided
-    let percentage = progressData.percentage;
-    if (percentage === undefined && total > 0) {
+    // Calculate percentage
+    let percentage = 0;
+    if (typeof progressData.percentage === "number") {
+      percentage = progressData.percentage;
+    } else if (total > 0) {
       percentage = Math.round((scanned / total) * 100);
-    } else {
-      percentage = percentage || 0;
     }
 
     progressElement.textContent = `Scanned ${scanned} files, ${matched} matches${total > 0 ? ` (${percentage}%)` : ""}`;
   }
-
-  // Add debug logging to your progress handler
-  window.api.onSearchProgress((progress) => {
-    console.log("Progress data received:", progress);
-    console.log("Type of progress:", typeof progress);
-
-    if (progress && typeof progress === "object") {
-      updateProgress(progress);
-    } else {
-      console.error("Invalid progress data:", progress);
-      // Show a generic progress message
-      const progressElement = document.querySelector(".progress-text");
-      if (progressElement) {
-        progressElement.textContent = "Searching files...";
-      }
-    }
-  });
 
   function displayResults(results) {
     if (results.length === 0) {
