@@ -11,10 +11,139 @@ document.addEventListener("DOMContentLoaded", function () {
   const fileTypeSelect = document.getElementById("file-type");
   const customFileTypeInput = document.getElementById("custom-file-type");
   const tooltip = document.getElementById("tooltip");
+  const container = document.querySelector(".container");
 
   // State
   let searchType = "file-content";
   let isSearching = false;
+
+  // Add keyboard shortcuts
+  document.addEventListener("keydown", (event) => {
+    // Ctrl+O - Open directory
+    if (event.ctrlKey && event.key === "o") {
+      event.preventDefault();
+      browseButton.click();
+    }
+
+    // Ctrl+N - New search
+    if (event.ctrlKey && event.key === "n") {
+      event.preventDefault();
+      clearResults();
+    }
+
+    // F1 - Documentation
+    if (event.key === "F1") {
+      event.preventDefault();
+      window.open(
+        "https://github.com/jhenbertgit/file-search-tool/wiki",
+        "_blank"
+      );
+    }
+
+    // Escape - Stop search
+    if (event.key === "Escape" && isSearching) {
+      event.preventDefault();
+      stopSearch();
+    }
+  });
+
+  // Add this to support the menu actions with visual feedback
+  window.api.onNewSearch(() => {
+    // Visual feedback for new search
+    container.style.opacity = "0.8";
+    container.style.transition = "opacity 150ms ease-in-out";
+    setTimeout(() => {
+      clearResults();
+      container.style.opacity = "1";
+    }, 150);
+  });
+
+  // FINAL FIX: Replace your window.api.onDirectorySelected with this
+  window.api.onDirectorySelected((...args) => {
+    console.log("IPC args received:", args);
+
+    // The issue is that we're getting (event) instead of (event, data)
+    // Extract the directory from the event object if needed
+    let directory;
+
+    if (args.length === 1 && args[0] && args[0].sender) {
+      // We received the event object directly
+      console.error(
+        "Received event object directly. This is an IPC configuration issue."
+      );
+
+      // Try to get directory from a different approach
+      browseButton.click().catch(() => {
+        showError("Please use the browse button to select a directory");
+      });
+      return;
+    } else if (args.length === 1 && typeof args[0] === "string") {
+      directory = args[0];
+    } else if (args.length === 2 && typeof args[1] === "string") {
+      directory = args[1];
+    } else {
+      console.error("Unexpected argument format:", args);
+      showError("Please use the browse button to select a directory");
+      return;
+    }
+
+    directoryInput.value = directory;
+    directoryInput.style.backgroundColor = "#e8f5e8";
+    setTimeout(() => {
+      directoryInput.style.backgroundColor = "";
+    }, 1000);
+  });
+
+  // Add a fallback progress indicator
+  let lastProgressUpdate = Date.now();
+  let progressInterval;
+
+  function startProgressFallback() {
+    let dots = 0;
+    progressInterval = setInterval(() => {
+      if (!isSearching) {
+        clearInterval(progressInterval);
+        return;
+      }
+
+      dots = (dots + 1) % 4;
+      const progressElement = document.querySelector(".progress-text");
+      if (progressElement) {
+        // If it's been more than 2 seconds since last real progress update, show fallback
+        if (Date.now() - lastProgressUpdate > 2000) {
+          progressElement.textContent = `Searching${".".repeat(dots)}`;
+        }
+      }
+    }, 500);
+  }
+
+  function stopProgressFallback() {
+    clearInterval(progressInterval);
+  }
+
+  // Also update your performSearch function to show initial progress
+  function performSearch(directory, searchTerm, searchType, fileType) {
+    isSearching = true;
+    updateUIState();
+    startProgressFallback();
+
+    // Show searching state with initial progress
+    resultsList.innerHTML = `
+    <li class="searching">
+      <div class="spinner"></div>
+      <p>Searching for "${searchTerm}"${fileType ? ` in ${fileType} files` : ""}...</p>
+      <div class="progress-text">Initializing search...</div>
+    </li>
+  `;
+
+    // Visual feedback for search start
+    searchButton.style.transform = "scale(0.95)";
+    setTimeout(() => {
+      searchButton.style.transform = "scale(1)";
+    }, 150);
+
+    window.api.searchFiles({ directory, searchTerm, searchType, fileType });
+  }
 
   // Event Listeners
   browseButton.addEventListener("click", async () => {
@@ -23,6 +152,11 @@ document.addEventListener("DOMContentLoaded", function () {
     const directory = await window.api.openDirectoryDialog();
     if (directory) {
       directoryInput.value = directory;
+      // Visual feedback
+      directoryInput.style.backgroundColor = "#e8f5e8";
+      setTimeout(() => {
+        directoryInput.style.backgroundColor = "";
+      }, 1000);
     }
   });
 
@@ -38,11 +172,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!directory) {
       showError("Please select a directory first");
+      // Visual feedback for error
+      directoryInput.style.backgroundColor = "#ffe6e6";
+      setTimeout(() => {
+        directoryInput.style.backgroundColor = "";
+      }, 1000);
       return;
     }
 
     if (!searchTerm) {
       showError("Please enter a search term");
+      // Visual feedback for error
+      searchTermInput.style.backgroundColor = "#ffe6e6";
+      setTimeout(() => {
+        searchTermInput.style.backgroundColor = "";
+      }, 1000);
       return;
     }
 
@@ -61,6 +205,12 @@ document.addEventListener("DOMContentLoaded", function () {
       optionCards.forEach((c) => c.classList.remove("active"));
       card.classList.add("active");
       searchType = card.dataset.type;
+
+      // Visual feedback for option selection
+      card.style.transform = "scale(0.98)";
+      setTimeout(() => {
+        card.style.transform = "scale(1)";
+      }, 150);
     });
   });
 
@@ -83,21 +233,25 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Set up IPC listeners
+  // Set up IPC listeners - UPDATED VERSION
   window.api.onSearchResults((results) => {
+    stopProgressFallback();
     displayResults(results);
     isSearching = false;
     updateUIState();
   });
 
   window.api.onSearchError((error) => {
+    stopProgressFallback();
     showError(error.message);
     isSearching = false;
     updateUIState();
   });
 
-  window.api.onSearchProgress((progress) => {
-    updateProgress(progress);
+  window.api.onSearchProgress((progressData) => {
+    console.log("Progress update received:", progressData);
+    lastProgressUpdate = Date.now();
+    updateProgress(progressData);
   });
 
   // Tooltip functionality
@@ -114,50 +268,77 @@ document.addEventListener("DOMContentLoaded", function () {
     return fileTypeSelect.value;
   }
 
-  function performSearch(directory, searchTerm, searchType, fileType) {
-    isSearching = true;
-    updateUIState();
-
-    // Show searching state
-    resultsList.innerHTML = `
-          <li class="searching">
-              <div class="spinner"></div>
-              <p>Searching for "${searchTerm}"${fileType ? ` in ${fileType} files` : ""}...</p>
-              <div class="progress-text">Preparing search...</div>
-          </li>
-      `;
-
-    window.api.searchFiles({ directory, searchTerm, searchType, fileType });
-  }
-
   function stopSearch() {
     window.api.stopSearch();
     isSearching = false;
     updateUIState();
 
     resultsList.innerHTML = `
-          <li class="no-results">
-              <i class="fas fa-stop-circle"></i>
-              <p>Search stopped</p>
-          </li>
-      `;
+      <li class="no-results">
+        <i class="fas fa-stop-circle"></i>
+        <p>Search stopped</p>
+      </li>
+    `;
+
+    // Visual feedback for stop search
+    searchButton.style.backgroundColor = "#6c757d";
+    setTimeout(() => {
+      searchButton.style.backgroundColor = "";
+    }, 300);
   }
 
-  function updateProgress(progress) {
+  // Fixed progress update function
+  function updateProgress(progressData) {
     const progressElement = document.querySelector(".progress-text");
-    if (progressElement) {
-      progressElement.textContent = `Scanned ${progress.scanned} files, ${progress.matched} matches`;
+    if (!progressElement) return;
+
+    // Handle cases where progressData might be undefined or malformed
+    if (!progressData || typeof progressData !== "object") {
+      progressElement.textContent = "Searching files...";
+      return;
     }
+
+    // Extract values with defaults
+    const scanned = progressData.scanned || 0;
+    const matched = progressData.matched || 0;
+    const total = progressData.total || 0;
+
+    // Calculate percentage if not provided
+    let percentage = progressData.percentage;
+    if (percentage === undefined && total > 0) {
+      percentage = Math.round((scanned / total) * 100);
+    } else {
+      percentage = percentage || 0;
+    }
+
+    progressElement.textContent = `Scanned ${scanned} files, ${matched} matches${total > 0 ? ` (${percentage}%)` : ""}`;
   }
+
+  // Add debug logging to your progress handler
+  window.api.onSearchProgress((progress) => {
+    console.log("Progress data received:", progress);
+    console.log("Type of progress:", typeof progress);
+
+    if (progress && typeof progress === "object") {
+      updateProgress(progress);
+    } else {
+      console.error("Invalid progress data:", progress);
+      // Show a generic progress message
+      const progressElement = document.querySelector(".progress-text");
+      if (progressElement) {
+        progressElement.textContent = "Searching files...";
+      }
+    }
+  });
 
   function displayResults(results) {
     if (results.length === 0) {
       resultsList.innerHTML = `
-              <li class="no-results">
-                  <i class="fas fa-exclamation-circle"></i>
-                  <p>No results found for "${searchTermInput.value}"</p>
-              </li>
-          `;
+        <li class="no-results">
+          <i class="fas fa-exclamation-circle"></i>
+          <p>No results found for "${searchTermInput.value}"</p>
+        </li>
+      `;
       resultsCount.textContent = "(0 found)";
       return;
     }
@@ -178,21 +359,21 @@ document.addEventListener("DOMContentLoaded", function () {
       const fileIcon = getFileIcon(result.name);
 
       li.innerHTML = `
-              <i class="${fileIcon}"></i>
-              <div class="file-info">
-                  <div class="file-name">${result.name}</div>
-                  <div class="file-path">${result.path}</div>
-                  <div class="file-details">
-                      <span class="file-size">${size}</span> • 
-                      <span class="file-modified">Modified: ${modified}</span>
-                  </div>
-              </div>
-              <div class="file-actions">
-                  <button class="file-action-btn open-location" title="Open file location" data-index="${index}">
-                      <i class="fas fa-folder-open"></i>
-                  </button>
-              </div>
-          `;
+        <i class="${fileIcon}"></i>
+        <div class="file-info">
+          <div class="file-name">${result.name}</div>
+          <div class="file-path">${result.path}</div>
+          <div class="file-details">
+            <span class="file-size">${size}</span> • 
+            <span class="file-modified">Modified: ${modified}</span>
+          </div>
+        </div>
+        <div class="file-actions">
+          <button class="file-action-btn open-location" title="Open file location" data-index="${index}">
+            <i class="fas fa-folder-open"></i>
+          </button>
+        </div>
+      `;
 
       // Add double click to open file
       li.addEventListener("dblclick", () => {
@@ -222,22 +403,40 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function showError(message) {
     resultsList.innerHTML = `
-          <li class="no-results">
-              <i class="fas fa-exclamation-triangle"></i>
-              <p>${message}</p>
-          </li>
-      `;
+      <li class="no-results">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>${message}</p>
+      </li>
+    `;
     resultsCount.textContent = "(Error)";
+
+    // Visual feedback for error
+    container.style.backgroundColor = "#fff5f5";
+    setTimeout(() => {
+      container.style.backgroundColor = "";
+    }, 1000);
   }
 
   function clearResults() {
     resultsList.innerHTML = `
-          <li class="no-results">
-              <i class="fas fa-search"></i>
-              <p>Your search results will appear here</p>
-          </li>
-      `;
+      <li class="no-results">
+        <i class="fas fa-search"></i>
+        <p>Your search results will appear here</p>
+      </li>
+    `;
     resultsCount.textContent = "(0 found)";
+    searchTermInput.value = "";
+    directoryInput.value = "";
+
+    if (isSearching) {
+      stopSearch();
+    }
+
+    // Visual feedback for clear
+    clearResultsButton.style.transform = "scale(0.95)";
+    setTimeout(() => {
+      clearResultsButton.style.transform = "scale(1)";
+    }, 150);
   }
 
   function updateUIState() {
@@ -319,6 +518,8 @@ document.addEventListener("DOMContentLoaded", function () {
     window.api.removeAllListeners("search-results");
     window.api.removeAllListeners("search-error");
     window.api.removeAllListeners("search-progress");
+    window.api.removeAllListeners("new-search");
+    window.api.removeAllListeners("directory-selected");
 
     if (isSearching) {
       window.api.stopSearch();

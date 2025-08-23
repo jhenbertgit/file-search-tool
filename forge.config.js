@@ -12,7 +12,8 @@ module.exports = {
     appCopyright: "Copyright © 2025 Jhenbert",
     win32metadata: {
       CompanyName: "Jhenbert",
-      FileDescription: "A modern file search application",
+      FileDescription:
+        "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
       OriginalFilename: "FileSearchTool.exe",
       ProductName: "File Search Tool",
       InternalName: "FileSearchTool",
@@ -26,7 +27,8 @@ module.exports = {
         name: "file-search-tool",
         authors: "Jhenbert Villamucho",
         exe: "file-search-tool.exe",
-        description: "A modern file search application",
+        description:
+          "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
         setupExe: "FileSearchToolSetup.exe",
         setupIcon: "./assets/icon.ico",
         noMsi: true,
