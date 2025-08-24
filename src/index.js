@@ -16,8 +16,148 @@ const mammoth = require("mammoth");
 const pdf = require("pdf-parse");
 const xlsx = require("node-xlsx");
 
+// Handle squirrel events FIRST - before anything else
+function handleSquirrelEvents() {
+  if (process.platform !== "win32" || process.argv.length <= 1) {
+    return false;
+  }
+
+  const squirrelEvent = process.argv[1];
+  const supportedEvents = [
+    "--squirrel-install",
+    "--squirrel-updated",
+    "--squirrel-uninstall",
+    "--squirrel-obsolete",
+  ];
+
+  if (!supportedEvents.includes(squirrelEvent)) {
+    return false;
+  }
+
+  // EARLY RETURN - Handle squirrel events immediately
+  try {
+    // Try to use electron-squirrel-startup if available
+    try {
+      const squirrelStartup = require("electron-squirrel-startup");
+      if (squirrelStartup) {
+        console.log("Handled by electron-squirrel-startup");
+        return true;
+      }
+    } catch (e) {
+      // Fall back to manual handling if module not available
+      console.log(
+        "electron-squirrel-startup not available, using manual handling"
+      );
+    }
+
+    // Manual squirrel event handling
+    const appFolder = path.resolve(process.execPath, "..");
+    const rootAtomFolder = path.resolve(appFolder, "..");
+    const updateExe = path.resolve(path.join(rootAtomFolder, "Update.exe"));
+
+    // Check if Update.exe exists
+    if (!fs.existsSync(updateExe)) {
+      console.log("Update.exe not found, cannot handle squirrel event");
+      return false;
+    }
+
+    const exeName = path.basename(process.execPath);
+
+    const spawnUpdate = function (args) {
+      try {
+        console.log("Running Update.exe with args:", args);
+        const spawnedProcess = spawn(updateExe, args, {
+          detached: true,
+          stdio: "ignore",
+        });
+        spawnedProcess.unref();
+        return true;
+      } catch (error) {
+        console.error("Squirrel event error:", error);
+        return false;
+      }
+    };
+
+    let success = false;
+
+    switch (squirrelEvent) {
+      case "--squirrel-install":
+        console.log("Squirrel install event");
+        success = spawnUpdate(["--createShortcut", exeName]);
+        break;
+
+      case "--squirrel-updated":
+        console.log("Squirrel updated event");
+        success = spawnUpdate(["--createShortcut", exeName]);
+        break;
+
+      case "--squirrel-uninstall":
+        console.log("Squirrel uninstall event");
+        success = spawnUpdate(["--removeShortcut", exeName]);
+        break;
+
+      case "--squirrel-obsolete":
+        console.log("Squirrel obsolete event");
+        // Just quit for obsolete events
+        success = true;
+        break;
+    }
+
+    if (success) {
+      console.log("Squirrel event handled successfully, quitting app");
+      // Quit immediately for squirrel events
+      setTimeout(() => {
+        app.quit();
+      }, 1000);
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Squirrel event handling failed:", error);
+    // Even if handling fails, we should quit for squirrel events
+    setTimeout(() => {
+      app.quit();
+    }, 1000);
+    return true;
+  }
+}
+
+// Handle squirrel events immediately
+if (handleSquirrelEvents()) {
+  // Don't continue if it's a squirrel event
+  console.log("Squirrel event handled, exiting process");
+  process.exit(0);
+}
+
+// Cleanup function for previous installations
+function cleanupPreviousInstallations() {
+  try {
+    const appData = process.env.LOCALAPPDATA;
+    const appName = "file-search-tool";
+    const pathsToClean = [
+      path.join(appData, appName, "packages"),
+      path.join(appData, "SquirrelTemp"),
+      path.join(appData, appName, "temp"),
+    ];
+
+    pathsToClean.forEach((dir) => {
+      if (fs.existsSync(dir)) {
+        console.log("Cleaning up:", dir);
+        fs.removeSync(dir);
+      }
+    });
+  } catch (cleanupError) {
+    console.log("Cleanup not critical:", cleanupError.message);
+  }
+}
+
+// Call cleanup early
+cleanupPreviousInstallations();
+
 // Set version as global for access in renderer
-process.env.APP_VERSION = require("../package.json").version;
+const packageJson = require("../package.json");
+process.env.APP_VERSION = packageJson.version;
 
 // Environment detection
 const isDev =
@@ -44,119 +184,6 @@ function safeSend(channel, data) {
       console.error(`Failed to send ${channel}:`, error);
     }
   }
-}
-
-// Handle Squirrel events for Windows installer
-function handleSquirrelEvents() {
-  if (process.platform !== "win32" || process.argv.length <= 1) {
-    return false;
-  }
-
-  const squirrelEvent = process.argv[1];
-
-  // Cleanup for install/update events
-  if (
-    squirrelEvent === "--squirrel-install" ||
-    squirrelEvent === "--squirrel-updated"
-  ) {
-    try {
-      // Clean up potential conflicting directories
-      const appData = process.env.LOCALAPPDATA;
-      const appName = "file-search-tool";
-      const pathsToClean = [
-        path.join(appData, appName, "packages"),
-        path.join(appData, "SquirrelTemp"),
-        path.join(appData, appName, "temp"),
-      ];
-
-      pathsToClean.forEach((dir) => {
-        if (fs.existsSync(dir)) {
-          fs.removeSync(dir);
-          console.log("Cleaned up:", dir);
-        }
-      });
-    } catch (cleanupError) {
-      console.log("Cleanup not critical, continuing:", cleanupError.message);
-    }
-  }
-
-  const supportedEvents = [
-    "--squirrel-install",
-    "--squirrel-updated",
-    "--squirrel-uninstall",
-    "--squirrel-obsolete",
-  ];
-
-  if (!supportedEvents.includes(squirrelEvent)) {
-    return false;
-  }
-
-  try {
-    // Try to use electron-squirrel-startup if available
-    try {
-      const squirrelStartup = require("electron-squirrel-startup");
-      if (squirrelStartup) {
-        app.quit();
-        return true;
-      }
-    } catch (e) {
-      // Fall back to manual handling if module not available
-      if (isDev) {
-        console.log(
-          "electron-squirrel-startup not available, using manual handling"
-        );
-      }
-    }
-
-    // Manual squirrel event handling
-    const appFolder = path.resolve(process.execPath, "..");
-    const rootAtomFolder = path.resolve(appFolder, "..");
-    const updateExe = path.resolve(path.join(rootAtomFolder, "Update.exe"));
-
-    // Check if Update.exe exists
-    if (!fs.existsSync(updateExe)) {
-      return false;
-    }
-
-    const exeName = path.basename(process.execPath);
-
-    const spawnUpdate = function (args) {
-      try {
-        const spawnedProcess = spawn(updateExe, args, {
-          detached: true,
-          stdio: "ignore", // Prevents hanging processes
-        });
-        spawnedProcess.unref(); // Important: allow parent to exit independently
-        return true;
-      } catch (error) {
-        console.error("Squirrel event error:", error);
-        return false;
-      }
-    };
-
-    switch (squirrelEvent) {
-      case "--squirrel-install":
-      case "--squirrel-updated":
-        spawnUpdate(["--createShortcut", exeName]);
-        break;
-      case "--squirrel-uninstall":
-        spawnUpdate(["--removeShortcut", exeName]);
-        break;
-    }
-
-    // Always quit for squirrel events
-    setTimeout(() => app.quit(), 1000);
-    return true;
-  } catch (error) {
-    console.error("Squirrel event handling failed:", error);
-    return false;
-  }
-}
-
-// Handle squirrel events
-if (handleSquirrelEvents()) {
-  // Don't continue if it's a squirrel event
-  process.exit(0);
 }
 
 let mainWindow;
