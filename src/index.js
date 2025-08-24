@@ -53,6 +53,33 @@ function handleSquirrelEvents() {
   }
 
   const squirrelEvent = process.argv[1];
+
+  // Cleanup for install/update events
+  if (
+    squirrelEvent === "--squirrel-install" ||
+    squirrelEvent === "--squirrel-updated"
+  ) {
+    try {
+      // Clean up potential conflicting directories
+      const appData = process.env.LOCALAPPDATA;
+      const appName = "file-search-tool";
+      const pathsToClean = [
+        path.join(appData, appName, "packages"),
+        path.join(appData, "SquirrelTemp"),
+        path.join(appData, appName, "temp"),
+      ];
+
+      pathsToClean.forEach((dir) => {
+        if (fs.existsSync(dir)) {
+          fs.removeSync(dir);
+          console.log("Cleaned up:", dir);
+        }
+      });
+    } catch (cleanupError) {
+      console.log("Cleanup not critical, continuing:", cleanupError.message);
+    }
+  }
+
   const supportedEvents = [
     "--squirrel-install",
     "--squirrel-updated",
@@ -804,6 +831,38 @@ ipcMain.on("stop-search", () => {
   }
 
   safeSend("search-stopped");
+});
+
+ipcMain.handle("get-app-version", () => {
+  try {
+    // For Electron Forge with ASAR packaging
+    if (app.isPackaged) {
+      // In production: package.json is at the root of the ASAR archive
+      const packageJsonPath = path.join(
+        process.resourcesPath,
+        "app.asar",
+        "package.json"
+      );
+      const packageData = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      return packageData.version;
+    } else {
+      // In development: read from project root
+      const packageJsonPath = path.join(__dirname, "..", "package.json");
+      const packageData = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      return packageData.version;
+    }
+  } catch (error) {
+    console.error("Error reading app version:", error);
+
+    // Fallback: try to read from process resources
+    try {
+      const packageJsonPath = path.join(process.resourcesPath, "package.json");
+      const packageData = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+      return packageData.version;
+    } catch (fallbackError) {
+      return "1.0.0"; // Final fallback
+    }
+  }
 });
 
 ipcMain.handle("health-check", () => {

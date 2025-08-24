@@ -39,37 +39,7 @@ contextBridge.exposeInMainWorld("api", {
   },
 
   getAppVersion: () => {
-    return new Promise((resolve, reject) => {
-      try {
-        // For development, use npm environment variable
-        if (process.env.npm_package_version) {
-          resolve(process.env.npm_package_version);
-          return;
-        }
-
-        // For production, read from package.json
-        const fs = require("fs");
-        const path = require("path");
-        const packageJsonPath = path.join(process.cwd(), "package.json");
-
-        fs.readFile(packageJsonPath, "utf8", (err, data) => {
-          if (err) {
-            // Fallback to environment variable or default
-            resolve(process.env.APP_VERSION || "1.0.0");
-            return;
-          }
-
-          try {
-            const packageData = JSON.parse(data);
-            resolve(packageData.version);
-          } catch (parseError) {
-            resolve("1.0.0");
-          }
-        });
-      } catch (error) {
-        resolve("1.0.0");
-      }
-    });
+    return ipcRenderer.invoke("get-app-version");
   },
 
   removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),

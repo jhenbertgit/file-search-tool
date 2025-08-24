@@ -55,7 +55,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     } catch (error) {
       console.log("Version load failed, using default");
-      // Keep the default "v1.0" text
+      const versionElement = document.getElementById("app-version");
+      if (versionElement) {
+        versionElement.textContent = "v1.0";
+      }
     }
   }
 

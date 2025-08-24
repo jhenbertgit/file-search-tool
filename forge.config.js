@@ -18,6 +18,23 @@ module.exports = {
       ProductName: "File Search Tool",
       InternalName: "FileSearchTool",
     },
+    files: [
+      "src/**/*",
+      "package.json",
+      "assets/**/*",
+      "!**/*.map",
+      "!src/**/*.test.js",
+      "!**/.DS_Store",
+    ],
+    ignore: [
+      /^\/\.vscode/,
+      /^\/\.git/,
+      /^\/dist/,
+      /^\/out/,
+      /^\/\.eslintrc/,
+      /^\/forge\.config\.js/,
+      /\.map$/,
+    ],
   },
   rebuildConfig: {},
   makers: [
@@ -36,7 +53,6 @@ module.exports = {
         createDesktopShortcut: true,
         createStartMenuShortcut: true,
         shortcutName: "File Search Tool",
-        setupExe: "FileSearchToolSetup.exe",
         iconUrl:
           "https://raw.githubusercontent.com/jhenbertgit/file-search-tool/main/assets/icon.ico",
       },

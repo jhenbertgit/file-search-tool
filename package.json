@@ -1,6 +1,6 @@
 {
-  "name": "file-search",
-  "productName": "File Search",
+  "name": "file-search-tool",
+  "productName": "File Search Tool",
   "version": "1.0.0-beta.4",
   "description": "A modern file search application",
   "main": "src/index.js",
@@ -13,7 +13,8 @@
     "package:win": "electron-forge package --platform win32",
     "make:win": "electron-forge make --platform win32",
     "publish:win": "electron-forge publish --platform win32",
-    "lint": "eslint src/**/*.js"
+    "lint": "eslint src/**/*.js",
+    "clean": "rm -rf out dist"
   },
   "keywords": [
     "file",
