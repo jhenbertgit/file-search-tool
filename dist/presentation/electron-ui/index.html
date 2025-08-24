@@ -4,7 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>File Search</title>
-    <!-- All files are in same directory -->
     <link rel="stylesheet" href="index.css" />
     <link
       rel="stylesheet"
@@ -112,51 +111,6 @@
     <!-- Tooltip element -->
     <div id="tooltip" class="tooltip"></div>
 
-    <!-- Load renderer.js directly since all files are in same directory -->
     <script src="renderer.js"></script>
-
-    <!-- Fallback error handling -->
-    <script>
-      // Check if API loaded properly after a short delay
-      setTimeout(() => {
-        if (typeof window.api === "undefined") {
-          console.error(
-            "Electron API not loaded. Check preload configuration."
-          );
-
-          const resultsList = document.getElementById("results-list");
-          if (resultsList) {
-            resultsList.innerHTML = `
-              <li class="no-results error">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Application initialization error</p>
-                <p class="error-detail">API not available - check preload.js</p>
-              </li>
-            `;
-          }
-
-          // Disable interactive elements
-          const elementsToDisable = [
-            "browse-button",
-            "search-button",
-            "clear-results",
-            "search-term",
-            "file-type",
-            "custom-file-type",
-          ];
-
-          elementsToDisable.forEach((id) => {
-            const element = document.getElementById(id);
-            if (element) element.disabled = true;
-          });
-
-          // Disable option cards
-          document.querySelectorAll(".option-card").forEach((card) => {
-            card.style.pointerEvents = "none";
-            card.style.opacity = "0.5";
-          });
-        }
-      }, 1000);
-    </script>
   </body>
 </html>

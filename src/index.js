@@ -11,6 +11,11 @@ const path = require("path");
 const fs = require("fs-extra");
 const chokidar = require("chokidar");
 
+// Office document text extraction libraries
+const mammoth = require("mammoth");
+const pdf = require("pdf-parse");
+const xlsx = require("node-xlsx");
+
 // Set version as global for access in renderer
 process.env.APP_VERSION = require("../package.json").version;
 
@@ -19,6 +24,16 @@ const isDev =
   process.env.NODE_ENV === "development" ||
   process.argv.includes("--dev") ||
   process.defaultApp;
+
+// Suppress noisy error messages
+const SUPPRESSED_ERRORS = [
+  "Could not find the body element",
+  "Could not find main document part",
+  "is this a zip file",
+  "end of central directory",
+  "docx file",
+  "zip file",
+];
 
 // Safe message sending function
 function safeSend(channel, data) {
@@ -172,7 +187,6 @@ function createWindowsMenu() {
               );
 
               if (!canceled && filePaths.length > 0) {
-                // This should send ONLY the directory string
                 mainWindow.webContents.send("directory-selected", filePaths[0]);
               }
             } catch (error) {
@@ -210,12 +224,293 @@ function createWindowsMenu() {
   Menu.setApplicationMenu(menu);
 }
 
-// Add this function to create the menu
 function createApplicationMenu() {
   if (process.platform === "win32") {
     createWindowsMenu();
   }
-  // You can add other platform menus here if needed
+}
+
+// Office document support functions
+function isSupportedOfficeDocument(filename) {
+  const officeExtensions = new Set([
+    "pdf",
+    "doc",
+    "docx",
+    "ppt",
+    "pptx",
+    "xls",
+    "xlsx",
+    "csv",
+    "txt",
+    "rtf",
+    "odt",
+    "ods",
+    "odp",
+    "html",
+    "htm",
+    "xml",
+    "json",
+  ]);
+
+  const extension = filename.split(".").pop().toLowerCase();
+  return officeExtensions.has(extension);
+}
+
+// Improved file type detection
+async function detectActualFileType(filePath) {
+  try {
+    const buffer = Buffer.alloc(4100);
+    const fd = await fs.open(filePath, "r");
+    const { bytesRead } = await fd.read(buffer, 0, 4100, 0);
+    await fd.close();
+
+    // Use subarray instead of deprecated slice
+    const header = buffer.subarray(0, Math.min(bytesRead, 4100));
+
+    // Check for PDF
+    if (header.subarray(0, 4).toString() === "%PDF") {
+      return "pdf";
+    }
+
+    // Check for ZIP-based formats
+    if (header.subarray(0, 2).toString("hex") === "504b") {
+      const headerStr = header.toString("utf8");
+
+      if (headerStr.includes("word/")) return "docx";
+      if (headerStr.includes("ppt/") || headerStr.includes("slides/"))
+        return "pptx";
+      if (headerStr.includes("xl/") || headerStr.includes("worksheets/"))
+        return "xlsx";
+
+      const ext = path.extname(filePath).toLowerCase().slice(1);
+      if (["docx", "pptx", "xlsx"].includes(ext)) return ext;
+
+      return "zip";
+    }
+
+    // Check for older Office formats
+    if (header.subarray(0, 8).toString("hex") === "d0cf11e0a1b11ae1") {
+      return path.extname(filePath).toLowerCase().slice(1);
+    }
+
+    return path.extname(filePath).toLowerCase().slice(1);
+  } catch (error) {
+    return path.extname(filePath).toLowerCase().slice(1);
+  }
+}
+
+async function searchPDFContent(filePath, searchTermLower) {
+  try {
+    const dataBuffer = await fs.readFile(filePath);
+    const data = await pdf(dataBuffer);
+    return data.text.toLowerCase().includes(searchTermLower);
+  } catch (error) {
+    if (
+      isDev &&
+      !SUPPRESSED_ERRORS.some((pattern) => error.message.includes(pattern))
+    ) {
+      console.error("PDF processing error:", error.message);
+    }
+    return false;
+  }
+}
+
+async function searchWordContent(filePath, searchTermLower) {
+  const filename = path.basename(filePath);
+
+  try {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value.toLowerCase().includes(searchTermLower);
+  } catch (error) {
+    // Fallback for problematic Word files
+    try {
+      const buffer = await fs.readFile(filePath);
+      const text = buffer.toString("utf8", 0, Math.min(buffer.length, 1000000));
+
+      const cleanText = text
+        .replace(/[^\x20-\x7E\n\r\t]/g, " ")
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+
+      return cleanText.includes(searchTermLower);
+    } catch (fallbackError) {
+      return false;
+    }
+  }
+}
+
+async function searchExcelContent(filePath, searchTermLower) {
+  try {
+    const workSheets = xlsx.parse(filePath);
+    for (const sheet of workSheets) {
+      for (const row of sheet.data) {
+        for (const cell of row) {
+          if (cell && cell.toString().toLowerCase().includes(searchTermLower)) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  } catch (error) {
+    if (
+      isDev &&
+      !SUPPRESSED_ERRORS.some((pattern) => error.message.includes(pattern))
+    ) {
+      console.error("Excel processing error:", error.message);
+    }
+    return false;
+  }
+}
+
+async function searchPowerPointContent(filePath, searchTermLower) {
+  const filename = path.basename(filePath);
+
+  try {
+    const result = await mammoth.extractRawText({ path: filePath });
+    if (result.value.toLowerCase().includes(searchTermLower)) {
+      return true;
+    }
+  } catch (mammothError) {
+    // Continue to fallback
+  }
+
+  // Alternative approach
+  try {
+    const buffer = await fs.readFile(filePath);
+    const text = buffer.toString("utf8", 0, Math.min(buffer.length, 500000));
+
+    const cleanText = text
+      .replace(/<[^>]*>/g, " ")
+      .replace(/[^\x20-\x7E\n\r\t]/g, " ")
+      .toLowerCase();
+
+    return cleanText.includes(searchTermLower);
+  } catch (zipError) {
+    // Final fallback - this is reachable now
+    try {
+      return await searchTextContent(filePath, searchTermLower);
+    } catch (finalError) {
+      return false;
+    }
+  }
+}
+
+async function searchLegacyOfficeContent(filePath, searchTermLower, fileType) {
+  try {
+    const buffer = await fs.readFile(filePath);
+    const text = buffer.toString("utf8", 0, Math.min(buffer.length, 1000000));
+
+    const cleanText = text.replace(/[^\x20-\x7E\n\r\t]/g, " ").toLowerCase();
+    return cleanText.includes(searchTermLower);
+  } catch (error) {
+    return false;
+  }
+}
+
+async function searchTextContent(filePath, searchTermLower) {
+  try {
+    const content = await fs.readFile(filePath, "utf8");
+    return content.toLowerCase().includes(searchTermLower);
+  } catch (error) {
+    return false;
+  }
+}
+
+// Improved Office file content search
+async function searchOfficeFileContent(filePath, searchTerm, signal) {
+  if (signal.aborted) return false;
+
+  const searchTermLower = searchTerm.toLowerCase();
+  const filename = path.basename(filePath);
+
+  try {
+    const actualFileType = await detectActualFileType(filePath);
+
+    switch (actualFileType) {
+      case "pdf":
+        return await searchPDFContent(filePath, searchTermLower);
+
+      case "docx":
+        return await searchWordContent(filePath, searchTermLower);
+
+      case "doc":
+        return await searchLegacyOfficeContent(
+          filePath,
+          searchTermLower,
+          "doc"
+        );
+
+      case "xlsx":
+        return await searchExcelContent(filePath, searchTermLower);
+
+      case "xls":
+        return await searchLegacyOfficeContent(
+          filePath,
+          searchTermLower,
+          "xls"
+        );
+
+      case "pptx":
+        return await searchPowerPointContent(filePath, searchTermLower);
+
+      case "ppt":
+        return await searchLegacyOfficeContent(
+          filePath,
+          searchTermLower,
+          "ppt"
+        );
+
+      case "csv":
+      case "txt":
+      case "rtf":
+      case "html":
+      case "htm":
+      case "xml":
+      case "json":
+      case "odt":
+      case "ods":
+      case "odp":
+        return await searchTextContent(filePath, searchTermLower);
+
+      default:
+        return await searchTextContent(filePath, searchTermLower);
+    }
+  } catch (error) {
+    if (
+      isDev &&
+      !SUPPRESSED_ERRORS.some((pattern) => error.message.includes(pattern))
+    ) {
+      console.error(`Error processing ${filename}:`, error.message);
+    }
+
+    try {
+      return await searchTextContent(filePath, searchTermLower);
+    } catch (fallbackError) {
+      return false;
+    }
+  }
+}
+
+async function searchFileContent(filePath, searchTerm, signal) {
+  const filename = path.basename(filePath);
+
+  if (!isSupportedOfficeDocument(filename)) {
+    return false;
+  }
+
+  try {
+    const result = await searchOfficeFileContent(filePath, searchTerm, signal);
+    return result;
+  } catch (error) {
+    if (
+      isDev &&
+      !SUPPRESSED_ERRORS.some((pattern) => error.message.includes(pattern))
+    ) {
+      console.error(`Error searching ${filename}:`, error.message);
+    }
+    return false;
+  }
 }
 
 app.whenReady().then(() => {
@@ -224,7 +519,6 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
-  // Clean up resources
   if (watcher) {
     watcher.close();
     watcher = null;
@@ -241,12 +535,10 @@ app.on("activate", () => {
   }
 });
 
-// Handle app closing more gracefully
 app.on("before-quit", (event) => {
   if (isSearching) {
-    event.preventDefault(); // Prevent immediate quit
+    event.preventDefault();
 
-    // Stop search operations first
     if (currentSearchAbortController) {
       currentSearchAbortController.abort();
     }
@@ -256,14 +548,12 @@ app.on("before-quit", (event) => {
       watcher = null;
     }
 
-    // Wait a moment for cleanup, then quit
     setTimeout(() => {
       app.quit();
     }, 500);
   }
 });
 
-// Directory dialog handler
 ipcMain.handle("open-directory-dialog", async () => {
   try {
     const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
@@ -282,12 +572,14 @@ ipcMain.handle("open-directory-dialog", async () => {
   }
 });
 
-// Main search function
 ipcMain.on("search-files", async (event, searchParams) => {
-  const { directory, searchTerm, searchType, fileType } = searchParams;
-
-  console.log("Search directory:", directory); // Debug log
-  console.log("Type of directory:", typeof directory); // Debug log
+  const {
+    directory,
+    searchTerm,
+    searchType,
+    fileType,
+    maxFileSize = 100 * 1024 * 1024,
+  } = searchParams;
 
   if (typeof directory !== "string") {
     console.error("Invalid directory parameter:", directory);
@@ -339,12 +631,10 @@ ipcMain.on("search-files", async (event, searchParams) => {
               totalFiles++;
             }
           } catch (statErr) {
-            // Ignore files that can't be stat'd
             if (isDev) console.log(`Cannot stat: ${itemPath}`);
           }
         }
       } catch (readdirErr) {
-        // Ignore directories that can't be read
         if (isDev) console.log(`Cannot read directory: ${dir}`);
       }
     };
@@ -364,7 +654,6 @@ ipcMain.on("search-files", async (event, searchParams) => {
           try {
             const stat = await fs.stat(itemPath);
             if (stat.isDirectory()) {
-              // Recursively search subdirectories
               const subResults = await searchDirectory(
                 itemPath,
                 term,
@@ -375,8 +664,8 @@ ipcMain.on("search-files", async (event, searchParams) => {
             } else if (stat.isFile()) {
               scannedFiles++;
 
-              // In your searchDirectory function, find the progress update section:
-              if (scannedFiles % 25 === 0 || scannedFiles === totalFiles) {
+              // Update progress
+              if (scannedFiles % 10 === 0 || scannedFiles === totalFiles) {
                 safeSend("search-progress", {
                   scanned: scannedFiles,
                   total: totalFiles,
@@ -408,35 +697,33 @@ ipcMain.on("search-files", async (event, searchParams) => {
                   matchedFiles++;
                 }
               } else {
-                try {
-                  // Read only first 64KB for content search to improve performance
-                  const content = await fs.readFile(itemPath, "utf-8", {
-                    encoding: "utf-8",
-                    flag: "r",
-                    signal,
+                // Skip very large files for performance
+                if (stat.size > maxFileSize) {
+                  continue;
+                }
+
+                // Use optimized content search for Office documents
+                const contentMatch = await searchFileContent(
+                  itemPath,
+                  term,
+                  signal
+                );
+                if (contentMatch) {
+                  results.push({
+                    name: item,
+                    path: itemPath,
+                    size: stat.size,
+                    modified: stat.mtime,
                   });
-                  if (content.toLowerCase().includes(term.toLowerCase())) {
-                    results.push({
-                      name: item,
-                      path: itemPath,
-                      size: stat.size,
-                      modified: stat.mtime,
-                    });
-                    matchedFiles++;
-                  }
-                } catch (readErr) {
-                  // Ignore files that can't be read (binary files, etc.)
-                  if (isDev) console.log(`Cannot read file: ${itemPath}`);
+                  matchedFiles++;
                 }
               }
             }
           } catch (statErr) {
-            // Ignore files that can't be stat'd
             if (isDev) console.log(`Cannot stat: ${itemPath}`);
           }
         }
       } catch (readdirErr) {
-        // Ignore directories that can't be read
         if (isDev) console.log(`Cannot read directory: ${dir}`);
       }
       return results;
@@ -454,21 +741,20 @@ ipcMain.on("search-files", async (event, searchParams) => {
       safeSend("search-results", initialResults);
     }
 
-    // Set up watcher for real-time updates if search is still active
+    // Set up watcher for real-time updates
     if (!signal.aborted) {
       watcher = chokidar.watch(directory, {
-        ignored: /(^|[\/\\])\../, // ignore dotfiles
+        ignored: /(^|[\/\\])\../,
         persistent: true,
         ignoreInitial: true,
-        depth: 99, // Watch subdirectories recursively
+        depth: 99,
         ignorePermissionErrors: true,
-        atomic: true, // Avoid triggering events for temporary files
+        atomic: true,
       });
 
       watcher.on("all", async (event, filePath) => {
         if (signal.aborted) return;
 
-        // Only re-search if it's a relevant event
         if (["add", "unlink", "change"].includes(event)) {
           const updatedResults = await searchDirectory(
             directory,
@@ -493,7 +779,6 @@ ipcMain.on("search-files", async (event, searchParams) => {
   }
 });
 
-// Open a file with the default application
 ipcMain.on("open-file", (event, filePath) => {
   shell.openPath(filePath).catch((err) => {
     console.error("Failed to open file:", err);
@@ -501,16 +786,13 @@ ipcMain.on("open-file", (event, filePath) => {
   });
 });
 
-// Open the file location in file explorer
 ipcMain.on("open-file-location", (event, filePath) => {
   shell.showItemInFolder(filePath);
 });
 
-// Stop search handler
 ipcMain.on("stop-search", () => {
   isSearching = false;
 
-  // Abort ongoing search operations
   if (currentSearchAbortController) {
     currentSearchAbortController.abort();
     currentSearchAbortController = null;
@@ -524,7 +806,6 @@ ipcMain.on("stop-search", () => {
   safeSend("search-stopped");
 });
 
-// Health check handler
 ipcMain.handle("health-check", () => {
   return { status: "ok", timestamp: new Date().toISOString() };
 });

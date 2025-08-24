@@ -89,9 +89,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Add this to support the menu actions with visual feedback
   window.api.onNewSearch(() => {
-    // Visual feedback for new search
     container.style.opacity = "0.8";
     container.style.transition = "opacity 150ms ease-in-out";
     setTimeout(() => {
@@ -100,20 +98,16 @@ document.addEventListener("DOMContentLoaded", function () {
     }, 150);
   });
 
-  // FINAL FIX: Directory selection handler
   window.api.onDirectorySelected((...args) => {
     console.log("IPC args received:", args);
 
-    // Extract the directory from the event object if needed
     let directory;
 
     if (args.length === 1 && args[0] && args[0].sender) {
-      // We received the event object directly
       console.error(
         "Received event object directly. This is an IPC configuration issue."
       );
 
-      // Try to get directory from a different approach
       browseButton.click().catch(() => {
         showError("Please use the browse button to select a directory");
       });
@@ -145,7 +139,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (directory && typeof directory === "string") {
         directoryInput.value = directory;
-        // Visual feedback
         directoryInput.style.backgroundColor = "#e8f5e8";
         setTimeout(() => {
           directoryInput.style.backgroundColor = "";
@@ -170,7 +163,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!directory) {
       showError("Please select a directory first");
-      // Visual feedback for error
       directoryInput.style.backgroundColor = "#ffe6e6";
       setTimeout(() => {
         directoryInput.style.backgroundColor = "";
@@ -180,7 +172,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (!searchTerm) {
       showError("Please enter a search term");
-      // Visual feedback for error
       searchTermInput.style.backgroundColor = "#ffe6e6";
       setTimeout(() => {
         searchTermInput.style.backgroundColor = "";
@@ -204,7 +195,6 @@ document.addEventListener("DOMContentLoaded", function () {
       card.classList.add("active");
       searchType = card.dataset.type;
 
-      // Visual feedback for option selection
       card.style.transform = "scale(0.98)";
       setTimeout(() => {
         card.style.transform = "scale(1)";
@@ -249,22 +239,18 @@ document.addEventListener("DOMContentLoaded", function () {
   window.api.onSearchProgress((...args) => {
     console.log("Progress IPC args:", args);
 
-    // Extract progress data from different possible formats
     let progressData;
 
     if (args.length === 1 && args[0] && typeof args[0] === "object") {
       if (args[0].sender) {
-        // We got the event object instead of progress data
         console.error(
           "IPC error: Received event object instead of progress data"
         );
         progressData = null;
       } else {
-        // We got the progress data directly
         progressData = args[0];
       }
     } else if (args.length === 2 && args[1] && typeof args[1] === "object") {
-      // We got (event, data) format
       progressData = args[1];
     }
 
@@ -274,7 +260,6 @@ document.addEventListener("DOMContentLoaded", function () {
       updateProgress(progressData);
     } else {
       console.log("No valid progress data, using fallback");
-      // Fallback to generic message
       const progressElement = document.querySelector(".progress-text");
       if (progressElement) {
         progressElement.textContent = "Searching files...";
@@ -301,7 +286,6 @@ document.addEventListener("DOMContentLoaded", function () {
     updateUIState();
     startProgressFallback();
 
-    // Show searching state with initial progress
     resultsList.innerHTML = `
       <li class="searching">
         <div class="spinner"></div>
@@ -310,7 +294,6 @@ document.addEventListener("DOMContentLoaded", function () {
       </li>
     `;
 
-    // Visual feedback for search start
     searchButton.style.transform = "scale(0.95)";
     setTimeout(() => {
       searchButton.style.transform = "scale(1)";
@@ -332,19 +315,16 @@ document.addEventListener("DOMContentLoaded", function () {
       </li>
     `;
 
-    // Visual feedback for stop search
     searchButton.style.backgroundColor = "#6c757d";
     setTimeout(() => {
       searchButton.style.backgroundColor = "";
     }, 300);
   }
 
-  // Robust progress update function
   function updateProgress(progressData) {
     const progressElement = document.querySelector(".progress-text");
     if (!progressElement) return;
 
-    // Handle cases where progressData might be malformed
     if (
       !progressData ||
       typeof progressData !== "object" ||
@@ -354,7 +334,6 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
-    // Extract values with safe defaults
     const scanned =
       typeof progressData.scanned === "number" ? progressData.scanned : 0;
     const matched =
@@ -362,7 +341,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const total =
       typeof progressData.total === "number" ? progressData.total : 0;
 
-    // Calculate percentage
     let percentage = 0;
     if (typeof progressData.percentage === "number") {
       percentage = progressData.percentage;
@@ -391,13 +369,10 @@ document.addEventListener("DOMContentLoaded", function () {
     results.forEach((result, index) => {
       const li = document.createElement("li");
 
-      // Format file size
       const size = formatFileSize(result.size);
 
-      // Format modified date
       const modified = new Date(result.modified).toLocaleString();
 
-      // Get file icon based on extension
       const fileIcon = getFileIcon(result.name);
 
       li.innerHTML = `
@@ -417,12 +392,9 @@ document.addEventListener("DOMContentLoaded", function () {
         </div>
       `;
 
-      // Add double click to open file
       li.addEventListener("dblclick", () => {
         window.api.openFile(result.path);
       });
-
-      // Add hover tooltip
       li.addEventListener("mouseenter", (e) => {
         tooltip.textContent = "Double click to open file";
         tooltip.style.opacity = "1";
@@ -432,10 +404,9 @@ document.addEventListener("DOMContentLoaded", function () {
         tooltip.style.opacity = "0";
       });
 
-      // Add click handler for open location button
       const openLocationBtn = li.querySelector(".open-location");
       openLocationBtn.addEventListener("click", (e) => {
-        e.stopPropagation(); // Prevent triggering the double click
+        e.stopPropagation();
         window.api.openFileLocation(result.path);
       });
 
@@ -452,7 +423,6 @@ document.addEventListener("DOMContentLoaded", function () {
     `;
     resultsCount.textContent = "(Error)";
 
-    // Visual feedback for error
     container.style.backgroundColor = "#fff5f5";
     setTimeout(() => {
       container.style.backgroundColor = "";
@@ -474,7 +444,6 @@ document.addEventListener("DOMContentLoaded", function () {
       stopSearch();
     }
 
-    // Visual feedback for clear
     clearResultsButton.style.transform = "scale(0.95)";
     setTimeout(() => {
       clearResultsButton.style.transform = "scale(1)";
@@ -482,7 +451,6 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function updateUIState() {
-    // Update search button
     if (isSearching) {
       searchButton.innerHTML = '<i class="fas fa-stop-circle"></i> Stop Search';
       searchButton.classList.add("searching");
@@ -491,7 +459,6 @@ document.addEventListener("DOMContentLoaded", function () {
       searchButton.classList.remove("searching");
     }
 
-    // Disable/enable controls
     const controls = [
       browseButton,
       searchTermInput,
@@ -555,7 +522,6 @@ document.addEventListener("DOMContentLoaded", function () {
     return iconMap[extension] || "fas fa-file";
   }
 
-  // Clean up listeners when page is unloaded
   window.addEventListener("beforeunload", () => {
     window.api.removeAllListeners("search-results");
     window.api.removeAllListeners("search-error");
@@ -568,6 +534,5 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Initialize UI state
   updateUIState();
 });
