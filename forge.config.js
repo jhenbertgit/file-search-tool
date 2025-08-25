@@ -13,7 +13,7 @@ module.exports = {
     win32metadata: {
       CompanyName: "Jhenbert",
       FileDescription:
-        "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
+        "Advanced file search with real-time indexing for rapid retrieval.",
       OriginalFilename: "FileSearchTool.exe",
       ProductName: "File Search Tool",
       InternalName: "FileSearchTool",
@@ -45,7 +45,7 @@ module.exports = {
         authors: "Jhenbert Villamucho",
         exe: "file-search-tool.exe",
         description:
-          "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
+          "Advanced file search with real-time indexing for rapid retrieval.",
         setupExe: "FileSearchToolSetup.exe",
         setupIcon: "./assets/icon.ico",
         noMsi: true,

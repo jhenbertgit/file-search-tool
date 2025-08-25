@@ -278,7 +278,6 @@ For issues and questions:
   - Initial release with basic search functionality
   - File name and content search modes
   - File type filtering
-  - Real-time file system monitoring
   - File opening and location revealing
   - Electron Forge integration for streamlined development
 
