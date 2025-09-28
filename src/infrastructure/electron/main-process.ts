@@ -134,7 +134,9 @@ export class ElectronMainProcess {
     // Get app version from package.json
     ipcMain.handle("get-app-version", () => {
       try {
-        const packageJsonPath = path.join(__dirname, "../../../package.json");
+        // Use app.getAppPath() to get the correct path regardless of build structure
+        const appPath = app.getAppPath();
+        const packageJsonPath = path.join(appPath, "package.json");
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
         return packageJson.version;
       } catch (error) {
