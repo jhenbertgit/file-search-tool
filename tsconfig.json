@@ -13,7 +13,8 @@
         "outDir": "./dist",
         "rootDir": "./src",
         "esModuleInterop": true,
-        "skipLibCheck": true
+        "skipLibCheck": true,
+        "importHelpers": true
     },
     "include": [
         "src/**/*"
