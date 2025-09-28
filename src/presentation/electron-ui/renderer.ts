@@ -300,7 +300,11 @@ class SearchApp {
       }
     } catch (error) {
       console.warn("Failed to load app version:", error);
-      // Continue without version - not critical for functionality
+      // Fallback to v1.0 if version loading fails
+      const footerElement = document.querySelector("footer p");
+      if (footerElement) {
+        footerElement.textContent = `File Search Tool v1.0 • Built with Electron`;
+      }
     }
   }
 
