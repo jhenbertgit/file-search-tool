@@ -74,15 +74,13 @@ class SearchApp {
     this.initializeUI();
     this.setupEventListeners();
     this.setupIpcListeners();
-    this.loadSearchHistory();
+    // Delay loading search history to ensure IPC handlers are ready
+    setTimeout(() => {
+      this.loadSearchHistory();
+    }, 500);
   }
 
   private setupIpcListeners(): void {
-    console.log("setupIpcListeners called");
-    console.log("window object:", window);
-    console.log("window.electronAPI:", (window as any).electronAPI);
-    console.log("getElectronAPI():", getElectronAPI());
-
     if (getElectronAPI()) {
       getElectronAPI().onSearchProgress((progress: SearchProgress) => {
         this.updateProgress(progress);
@@ -170,10 +168,6 @@ class SearchApp {
   }
 
   private async handleDirectoryDialog(): Promise<void> {
-    console.log("handleDirectoryDialog called");
-    console.log("window.electronAPI available:", !!(window as any).electronAPI);
-    console.log("getElectronAPI() available:", !!getElectronAPI());
-
     try {
       const electronAPI = getElectronAPI();
       if (!electronAPI) {
@@ -181,9 +175,7 @@ class SearchApp {
         return;
       }
 
-      console.log("Calling openDirectoryDialog...");
       const path = await electronAPI.openDirectoryDialog();
-      console.log("Directory path received:", path);
       if (path) {
         this.ui.directoryInput.value = path;
         this.validateForm();
@@ -553,15 +545,9 @@ class SearchApp {
 
 // Wait for both DOM and electronAPI to be ready
 function initializeApp() {
-  console.log("Initializing app...");
-  console.log("DOM ready:", document.readyState);
-  console.log("electronAPI available:", !!(window as any).electronAPI);
-
   if ((window as any).electronAPI) {
-    console.log("electronAPI is available, creating SearchApp");
     new SearchApp();
   } else {
-    console.log("electronAPI not available yet, waiting...");
     // Wait a bit and try again
     setTimeout(initializeApp, 100);
   }
