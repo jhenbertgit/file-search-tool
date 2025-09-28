@@ -7,6 +7,7 @@ import {
   SearchOptions,
 } from "../../core/domain/services/file-search-service";
 import path from "path";
+import * as fs from "fs";
 
 // Define the schema for the store
 interface StoreSchema {
@@ -127,6 +128,18 @@ export class ElectronMainProcess {
           success: false,
           error: error instanceof Error ? error.message : "Unknown error"
         };
+      }
+    });
+
+    // Get app version from package.json
+    ipcMain.handle("get-app-version", () => {
+      try {
+        const packageJsonPath = path.join(__dirname, "../../../package.json");
+        const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+        return packageJson.version;
+      } catch (error) {
+        console.error("Error reading package.json:", error);
+        return "Unknown";
       }
     });
 

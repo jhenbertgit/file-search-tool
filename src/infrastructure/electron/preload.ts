@@ -30,4 +30,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openFile: (filePath: string) => ipcRenderer.invoke("open-file", filePath),
 
   revealFile: (filePath: string) => ipcRenderer.invoke("reveal-file", filePath),
+
+  getAppVersion: () => ipcRenderer.invoke("get-app-version"),
 });

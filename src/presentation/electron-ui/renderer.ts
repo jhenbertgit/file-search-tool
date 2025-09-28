@@ -38,6 +38,7 @@ interface ElectronAPI {
   removeAllListeners: (channel: string) => void;
   openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   revealFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+  getAppVersion: () => Promise<string>;
 }
 
 // Helper function to access electronAPI with proper typing
@@ -77,6 +78,7 @@ class SearchApp {
     // Delay loading search history to ensure IPC handlers are ready
     setTimeout(() => {
       this.loadSearchHistory();
+      this.loadAppVersion();
     }, 500);
   }
 
@@ -286,6 +288,19 @@ class SearchApp {
     } catch (error) {
       console.warn("Failed to load search history:", error);
       // Continue without history - not critical for functionality
+    }
+  }
+
+  private async loadAppVersion(): Promise<void> {
+    try {
+      const version = await getElectronAPI().getAppVersion();
+      const footerElement = document.querySelector("footer p");
+      if (footerElement) {
+        footerElement.textContent = `File Search Tool v${version} • Built with Electron`;
+      }
+    } catch (error) {
+      console.warn("Failed to load app version:", error);
+      // Continue without version - not critical for functionality
     }
   }
 
