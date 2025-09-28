@@ -63,7 +63,7 @@ jobs:
         if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libxss1-dev libasound2-dev
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm-dev libxcomposite-dev libxdamage-dev libxrandr-dev libgbm-dev libxss1 libasound2-dev
 
       - name: Install dependencies
         if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name
@@ -83,11 +83,25 @@ jobs:
 
       - name: Package application
         if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name
-        run: pnpm run package:${{ matrix.name }}
+        run: |
+          if [ "${{ matrix.name }}" = "macos" ]; then
+            pnpm run package:mac
+          elif [ "${{ matrix.name }}" = "windows" ]; then
+            pnpm run package:win
+          else
+            pnpm run package:${{ matrix.name }}
+          fi
 
       - name: Create installer/package
         if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name
-        run: pnpm run make:${{ matrix.name }}
+        run: |
+          if [ "${{ matrix.name }}" = "macos" ]; then
+            pnpm run make:mac
+          elif [ "${{ matrix.name }}" = "windows" ]; then
+            pnpm run make:win
+          else
+            pnpm run make:${{ matrix.name }}
+          fi
 
       - name: Upload artifacts
         if: github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name
@@ -101,6 +115,13 @@ jobs:
 
       - name: Publish to GitHub Releases
         if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && startsWith(github.ref, 'refs/tags/')
-        run: pnpm run publish:${{ matrix.name }}
+        run: |
+          if [ "${{ matrix.name }}" = "macos" ]; then
+            pnpm run publish:mac
+          elif [ "${{ matrix.name }}" = "windows" ]; then
+            pnpm run publish:win
+          else
+            pnpm run publish:${{ matrix.name }}
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
