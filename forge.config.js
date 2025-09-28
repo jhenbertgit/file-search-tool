@@ -11,7 +11,7 @@ module.exports = {
     appCategoryType: "public.app-category.productivity",
     appCopyright: "Copyright © 2025 Jhenbert",
     win32metadata: {
-      CompanyName: "Jhenbert",
+      CompanyName: "Webgenix",
       FileDescription:
         "Advanced file search with real-time indexing for rapid retrieval.",
       OriginalFilename: "FileSearchTool.exe",
@@ -19,18 +19,20 @@ module.exports = {
       InternalName: "FileSearchTool",
     },
     files: [
-      "src/**/*",
+      "dist/**/*",
       "package.json",
+      "node_modules/**/*",
       "assets/**/*",
       "!**/*.map",
-      "!src/**/*.test.js",
+      "!**/*.test.js",
       "!**/.DS_Store",
     ],
     ignore: [
       /^\/\.vscode/,
       /^\/\.git/,
-      /^\/dist/,
       /^\/out/,
+      /^\/src/,
+      /^\/test/,
       /^\/\.eslintrc/,
       /^\/forge\.config\.js/,
       /\.map$/,
@@ -42,7 +44,7 @@ module.exports = {
       name: "@electron-forge/maker-squirrel",
       config: {
         name: "file-search-tool",
-        authors: "Jhenbert Villamucho",
+        authors: "Jhenbert",
         exe: "file-search-tool.exe",
         description:
           "Advanced file search with real-time indexing for rapid retrieval.",
@@ -60,6 +62,72 @@ module.exports = {
     {
       name: "@electron-forge/maker-zip",
       platforms: ["win32"],
+    },
+    {
+      name: "@electron-forge/maker-dmg",
+      config: {
+        name: "File Search Tool",
+        title: "File Search Tool Installer",
+        icon: "./assets/icon.icns",
+        background: "./assets/dmg-background.png",
+        format: "ULFO",
+        window: {
+          size: {
+            width: 660,
+            height: 400,
+          },
+        },
+        contents: [
+          {
+            x: 180,
+            y: 170,
+            type: "file",
+            path: "File Search Tool.app",
+          },
+          {
+            x: 480,
+            y: 170,
+            type: "link",
+            path: "/Applications",
+          },
+        ],
+      },
+    },
+    {
+      name: "@electron-forge/maker-zip",
+      platforms: ["darwin"],
+    },
+    {
+      name: "@electron-forge/maker-deb",
+      config: {
+        name: "file-search-tool",
+        productName: "File Search Tool",
+        genericName: "File Search Tool",
+        description:
+          "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
+        maintainer: "Jhenbert",
+        homepage: "https://github.com/jhenbertgit/file-search-tool",
+        categories: ["Utility", "FileManager"],
+        icon: "./assets/icon.png",
+        section: "utils",
+        priority: "optional",
+        depends: [],
+      },
+    },
+    {
+      name: "@electron-forge/maker-rpm",
+      config: {
+        name: "file-search-tool",
+        productName: "File Search Tool",
+        description:
+          "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
+        maintainer: "Jhenbert",
+        homepage: "https://github.com/jhenbertgit/file-search-tool",
+        categories: ["Utility", "FileManager"],
+        icon: "./assets/icon.png",
+        license: "MIT",
+        requires: [],
+      },
     },
   ],
   plugins: [
