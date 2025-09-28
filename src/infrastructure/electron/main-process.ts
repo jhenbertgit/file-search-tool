@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from "electron";
+import { app, BrowserWindow, ipcMain, dialog, shell } from "electron";
 import Store from "electron-store";
 import { container } from "../di/container";
 import { TYPES } from "../di/types";
@@ -101,6 +101,33 @@ export class ElectronMainProcess {
 
     ipcMain.on("stop-search", () => {
       this.fileSearchService.stopSearch();
+    });
+
+    // File operations
+    ipcMain.handle("open-file", async (event, filePath: string) => {
+      try {
+        await shell.openPath(filePath);
+        return { success: true };
+      } catch (error) {
+        console.error("Error opening file:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error"
+        };
+      }
+    });
+
+    ipcMain.handle("reveal-file", async (event, filePath: string) => {
+      try {
+        shell.showItemInFolder(filePath);
+        return { success: true };
+      } catch (error) {
+        console.error("Error revealing file:", error);
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : "Unknown error"
+        };
+      }
     });
 
     // Progress updates

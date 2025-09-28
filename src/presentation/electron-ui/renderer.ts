@@ -36,6 +36,8 @@ interface ElectronAPI {
   addToSearchHistory: (search: SearchOptions) => Promise<void>;
   onSearchProgress: (callback: (progress: SearchProgress) => void) => void;
   removeAllListeners: (channel: string) => void;
+  openFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+  revealFile: (filePath: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 // Helper function to access electronAPI with proper typing
@@ -279,15 +281,20 @@ class SearchApp {
   }
 
   private async loadSearchHistory(): Promise<void> {
-    const history = await getElectronAPI().getSearchHistory();
-    this.ui.searchHistoryList.innerHTML = "";
-    history.forEach((search) => {
-      const option = document.createElement("option");
-      option.value = search.searchTerm;
-      option.dataset.directory = search.directory;
-      option.dataset.searchType = search.searchType;
-      this.ui.searchHistoryList.appendChild(option);
-    });
+    try {
+      const history = await getElectronAPI().getSearchHistory();
+      this.ui.searchHistoryList.innerHTML = "";
+      history.forEach((search) => {
+        const option = document.createElement("option");
+        option.value = search.searchTerm;
+        option.dataset.directory = search.directory;
+        option.dataset.searchType = search.searchType;
+        this.ui.searchHistoryList.appendChild(option);
+      });
+    } catch (error) {
+      console.warn("Failed to load search history:", error);
+      // Continue without history - not critical for functionality
+    }
   }
 
   private handleHistorySelection(event: Event): void {
@@ -443,14 +450,28 @@ class SearchApp {
     return iconMap[extension || ""] || "fas fa-file text-gray-500";
   }
 
-  private openFile(filePath: string): void {
-    // This would need to be implemented in the main process
-    console.log("Opening file:", filePath);
+  private async openFile(filePath: string): Promise<void> {
+    try {
+      const result = await getElectronAPI().openFile(filePath);
+      if (!result.success) {
+        console.error("Failed to open file:", result.error);
+        // Could show a user-friendly error message here
+      }
+    } catch (error) {
+      console.error("Error opening file:", error);
+    }
   }
 
-  private revealFile(filePath: string): void {
-    // This would need to be implemented in the main process
-    console.log("Revealing file:", filePath);
+  private async revealFile(filePath: string): Promise<void> {
+    try {
+      const result = await getElectronAPI().revealFile(filePath);
+      if (!result.success) {
+        console.error("Failed to reveal file:", result.error);
+        // Could show a user-friendly error message here
+      }
+    } catch (error) {
+      console.error("Error revealing file:", error);
+    }
   }
 
   private handleError(error: unknown): void {
