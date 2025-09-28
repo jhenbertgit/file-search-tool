@@ -4,7 +4,7 @@ const { FuseV1Options, FuseVersion } = require("@electron/fuses");
 module.exports = {
   packagerConfig: {
     name: "File Search Tool",
-    executableName: "file-search-tool",
+    executableName: "file-search",
     icon: "./assets/icon",
     asar: true,
     appBundleId: "com.jhenbert.filesearchtool",
@@ -62,36 +62,6 @@ module.exports = {
     {
       name: "@electron-forge/maker-zip",
       platforms: ["win32"],
-    },
-    {
-      name: "@electron-forge/maker-dmg",
-      config: {
-        name: "File Search Tool",
-        title: "File Search Tool Installer",
-        icon: "./assets/icon.icns",
-        background: "./assets/dmg-background.png",
-        format: "ULFO",
-        window: {
-          size: {
-            width: 660,
-            height: 400,
-          },
-        },
-        contents: [
-          {
-            x: 180,
-            y: 170,
-            type: "file",
-            path: "File Search Tool.app",
-          },
-          {
-            x: 480,
-            y: 170,
-            type: "link",
-            path: "/Applications",
-          },
-        ],
-      },
     },
     {
       name: "@electron-forge/maker-zip",
