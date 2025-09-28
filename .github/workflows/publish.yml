@@ -15,6 +15,11 @@ on:
           - windows
           - macos
           - linux
+      publish:
+        description: "Publish to GitHub Releases"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -116,19 +121,19 @@ jobs:
           retention-days: 7
 
       - name: Publish to GitHub Releases (Windows)
-        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'windows' && startsWith(github.ref, 'refs/tags/')
+        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'windows' && (startsWith(github.ref, 'refs/tags/') || github.event.inputs.publish == 'true')
         run: pnpm run publish:win
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to GitHub Releases (macOS)
-        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'macos' && startsWith(github.ref, 'refs/tags/')
+        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'macos' && (startsWith(github.ref, 'refs/tags/') || github.event.inputs.publish == 'true')
         run: pnpm run publish:mac
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to GitHub Releases (Linux)
-        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'linux' && startsWith(github.ref, 'refs/tags/')
+        if: (github.event_name == 'push' || github.event.inputs.platform == 'all' || github.event.inputs.platform == matrix.name) && matrix.name == 'linux' && (startsWith(github.ref, 'refs/tags/') || github.event.inputs.publish == 'true')
         run: pnpm run publish:linux
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
