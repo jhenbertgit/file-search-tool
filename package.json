@@ -20,7 +20,7 @@
     "build:ts": "tsc",
     "build:css:dev": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css",
     "build:css:prod": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --minify",
-    "dev:css": "tailwindcss -i ./src/styles/input.css -o ./src/styles/output.css --watch",
+    "dev:css": "tailwindcss -i ./src/styles/input.css -o ./dist/styles/output.css --watch",
     "copy:assets": "node scripts/copy-assets.js",
     "prebuild": "npm run clean",
     "clean": "node -e \"const fs = require('fs-extra'); if (fs.existsSync('./dist')) fs.removeSync('./dist');\"",

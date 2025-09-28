@@ -182,12 +182,9 @@ export class ElectronMainProcess {
       },
     });
 
-    // In development, load from src directory; in production, load from dist
-    // Check if we're in development mode by looking at the current path
-    const isDev = __dirname.includes("src") || process.env.NODE_ENV === "development";
-    const htmlPath = isDev
-      ? path.join(__dirname, "../../../src/index.html")
-      : path.join(__dirname, "../../index.html");
+    // Always load HTML from dist directory to ensure correct relative paths for scripts
+    // The dist HTML file has correct paths to compiled JS and CSS files
+    const htmlPath = path.join(__dirname, "../../index.html");
 
     await this.mainWindow.loadFile(htmlPath);
 
