@@ -4,113 +4,193 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>File Search</title>
-    <link rel="stylesheet" href="index.css" />
+    <link rel="stylesheet" href="styles/output.css" />
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
   </head>
-  <body>
-    <div class="container">
-      <header>
-        <h1><i class="fas fa-search"></i> File Search</h1>
-        <p class="subtitle">Quickly find files by name or content</p>
+  <body class="electron-window font-sans">
+    <!-- Main Application Container -->
+    <div class="flex flex-col h-screen max-w-6xl mx-auto p-4">
+
+      <!-- Header Section -->
+      <header class="search-card mb-6 animate-fade-in">
+        <div class="bg-gradient-to-r from-primary-500 to-secondary-500 p-6 rounded-t-2xl text-white">
+          <div class="flex items-center justify-center gap-3 mb-2">
+            <i class="fas fa-search text-3xl"></i>
+            <h1 class="text-3xl font-bold">File Search</h1>
+          </div>
+          <p class="text-center text-primary-100 opacity-90">
+            Quickly find files by name or content across your system
+          </p>
+        </div>
       </header>
 
-      <div class="search-panel">
-        <div class="form-group">
-          <label for="directory">Search Location</label>
-          <div class="input-group">
-            <input
-              type="text"
-              id="directory"
-              placeholder="Select a folder to search in"
-              readonly
-            />
-            <button id="browse-button" class="btn btn-outline btn-icon">
-              <i class="fas fa-folder-open"></i>
-            </button>
-          </div>
-        </div>
+      <!-- Search Panel -->
+      <main class="search-card flex-1 adaptive-padding animate-slide-up">
+        <div class="responsive-search-layout h-full">
 
-        <div class="form-group">
-          <label for="search-term">What are you looking for?</label>
-          <input
-            type="text"
-            id="search-term"
-            placeholder="Enter your search term"
-          />
-        </div>
+          <!-- Search Controls Column -->
+          <div class="search-controls-responsive compact-layout">
+            <div class="space-y-4">
+              <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-cog text-primary-500"></i>
+                Search Settings
+              </h2>
 
-        <div class="form-group">
-          <label>Search Type</label>
-          <div class="search-options">
-            <div class="option-card active" data-type="file-content">
-              <i class="fas fa-file-alt"></i>
-              <h3>File Content</h3>
-              <p>Search inside files</p>
+              <!-- Directory Selection -->
+              <div class="space-y-2">
+                <label for="directory" class="block text-sm font-semibold text-gray-700">
+                  Search Location
+                </label>
+                <div class="flex gap-3">
+                  <input
+                    type="text"
+                    id="directory"
+                    class="input-field flex-1 bg-gray-50 cursor-pointer"
+                    placeholder="Select a folder to search in"
+                    readonly
+                  />
+                  <button
+                    id="directory-button"
+                    class="btn-outline px-4 py-3 flex-shrink-0"
+                    title="Browse for folder"
+                  >
+                    <i class="fas fa-folder-open"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Search Term -->
+              <div class="space-y-2">
+                <label for="search-term" class="block text-sm font-semibold text-gray-700">
+                  Search Term
+                </label>
+                <input
+                  type="text"
+                  id="search-term"
+                  class="input-field"
+                  placeholder="Enter your search term"
+                  list="search-history"
+                />
+                <datalist id="search-history"></datalist>
+              </div>
+
+              <!-- Search Type -->
+              <div class="space-y-2">
+                <label for="search-type" class="block text-sm font-semibold text-gray-700">
+                  Search Mode
+                </label>
+                <select id="search-type" class="select-field">
+                  <option value="file-content">Search in File Content</option>
+                  <option value="file-name">Search in File Names</option>
+                </select>
+              </div>
+
+              <!-- File Types Filter -->
+              <div class="space-y-2">
+                <label for="file-types" class="block text-sm font-semibold text-gray-700">
+                  File Types Filter
+                </label>
+                <input
+                  type="text"
+                  id="file-types"
+                  class="input-field"
+                  placeholder="e.g., .txt, .js, .md (leave empty for all)"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                  Comma-separated list of file extensions
+                </p>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex gap-3 pt-4">
+                <button id="search-button" class="btn-primary flex-1">
+                  <i class="fas fa-search"></i>
+                  <span>Search</span>
+                </button>
+                <button
+                  id="stop-button"
+                  class="btn-secondary flex-1 hidden"
+                >
+                  <i class="fas fa-stop"></i>
+                  <span>Stop</span>
+                </button>
+              </div>
             </div>
-            <div class="option-card" data-type="file-name">
-              <i class="fas fa-file"></i>
-              <h3>File Name</h3>
-              <p>Search by filename</p>
+          </div>
+
+          <!-- Results Column -->
+          <div class="search-results-responsive flex flex-col">
+
+            <!-- Results Header -->
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-list text-primary-500"></i>
+                Search Results
+              </h2>
+              <div class="flex items-center gap-4">
+                <span id="results-count" class="text-sm text-gray-500"></span>
+                <button
+                  id="clear-results"
+                  class="text-sm text-primary-600 hover:text-primary-700 font-medium hidden"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div id="progress-container" class="mb-4 hidden">
+              <div class="progress-bar">
+                <div id="progress-fill" class="progress-fill w-0"></div>
+              </div>
+              <p id="progress-text" class="text-sm text-gray-600 mt-2"></p>
+            </div>
+
+            <!-- Results List -->
+            <div class="flex-1 border-2 border-gray-200 rounded-xl overflow-hidden bg-white">
+              <ul id="results-list" class="h-full overflow-y-auto">
+                <!-- Empty State -->
+                <li class="flex flex-col items-center justify-center h-full text-center py-16 px-8">
+                  <div class="bg-gray-100 rounded-full p-6 mb-4">
+                    <i class="fas fa-search text-3xl text-gray-400"></i>
+                  </div>
+                  <h3 class="text-lg font-medium text-gray-600 mb-2">Ready to Search</h3>
+                  <p class="text-gray-500 max-w-md">
+                    Select a directory, enter your search term, and click the search button to find files.
+                  </p>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
+      </main>
 
-        <div class="form-group">
-          <label for="file-type">File Type Filter (optional)</label>
-          <div class="input-group">
-            <select id="file-type">
-              <option value="">All Files</option>
-              <option value="pdf">PDF Documents</option>
-              <option value="doc,docx">Word Documents</option>
-              <option value="xls,xlsx">Excel Spreadsheets</option>
-              <option value="ppt,pptx">PowerPoint Presentations</option>
-              <option value="txt">Text Files</option>
-              <option value="jpg,jpeg,png,gif">Images</option>
-              <option value="mp3,wav">Audio Files</option>
-              <option value="mp4,avi,mov">Video Files</option>
-              <option value="js,html,css,py">Code Files</option>
-              <option value="zip,rar">Archives</option>
-              <option value="custom">Custom Extension...</option>
-            </select>
-            <input
-              type="text"
-              id="custom-file-type"
-              class="hidden"
-              placeholder="Enter extensions (e.g., pdf,docx,txt)"
-            />
-          </div>
-        </div>
-
-        <button id="search-button" class="btn btn-primary">
-          <i class="fas fa-search"></i> Search
-        </button>
-
-        <div class="results-container">
-          <div class="results-header">
-            <h2>Results <span id="results-count">(0 found)</span></h2>
-            <button id="clear-results">Clear</button>
-          </div>
-
-          <ul id="results-list">
-            <li class="no-results">
-              <i class="fas fa-search"></i>
-              <p>Your search results will appear here</p>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <footer>
-        <p>File Search Tool • <span id="app-version">v1.0</span></p>
+      <!-- Footer -->
+      <footer class="text-center py-4">
+        <p class="text-sm text-gray-500">
+          File Search Tool &bull; Built with Electron
+        </p>
       </footer>
     </div>
 
-    <!-- Tooltip element -->
-    <div id="tooltip" class="tooltip"></div>
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center animate-scale-in">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Searching Files</h3>
+        <p class="text-gray-600" id="loading-text">Initializing search...</p>
+      </div>
+    </div>
 
-    <script src="renderer.js"></script>
+    <script>
+      console.log("HTML script tag is working");
+      console.log("Document ready state:", document.readyState);
+      console.log("Window object:", window);
+      console.log("electronAPI:", window.electronAPI);
+    </script>
+    <script src="./dist/presentation/electron-ui/renderer.js"></script>
   </body>
 </html>

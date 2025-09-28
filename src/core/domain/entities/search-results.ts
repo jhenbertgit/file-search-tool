@@ -9,8 +9,9 @@ export interface SearchResult {
 
 export interface SearchProgress {
   scanned: number;
-  total: number;
+  total?: number;
   matched: number;
-  percentage: number;
+  percentage?: number;
   currentFile?: string;
+  isComplete: boolean;
 }
