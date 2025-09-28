@@ -171,8 +171,10 @@ export class ElectronMainProcess {
 
   private async createWindow(): Promise<void> {
     this.mainWindow = new BrowserWindow({
-      width: 900,
-      height: 700,
+      width: 800,
+      height: 600,
+      resizable: true,
+      maximizable: false,
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -183,7 +185,7 @@ export class ElectronMainProcess {
     // In development, load from src directory; in production, load from dist
     const htmlPath = process.env.NODE_ENV === "development"
       ? path.join(__dirname, "../../../src/index.html")
-      : path.join(__dirname, "../../presentation/electron-ui/index.html");
+      : path.join(__dirname, "../../../src/index.html");
 
     await this.mainWindow.loadFile(htmlPath);
 
