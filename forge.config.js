@@ -43,9 +43,9 @@ module.exports = {
     {
       name: "@electron-forge/maker-squirrel",
       config: {
-        name: "file-search-tool",
+        name: "file-search",
         authors: "Jhenbert",
-        exe: "file-search-tool.exe",
+        exe: "file-search.exe",
         description:
           "Advanced file search with real-time indexing for rapid retrieval.",
         setupExe: "FileSearchToolSetup.exe",
@@ -70,7 +70,7 @@ module.exports = {
     {
       name: "@electron-forge/maker-deb",
       config: {
-        name: "file-search-tool",
+        name: "file-search",
         productName: "File Search Tool",
         genericName: "File Search Tool",
         description:
@@ -87,7 +87,7 @@ module.exports = {
     {
       name: "@electron-forge/maker-rpm",
       config: {
-        name: "file-search-tool",
+        name: "file-search",
         productName: "File Search Tool",
         description:
           "A high-performance file search tool designed for advanced, real-time indexing and rapid retrieval.",
