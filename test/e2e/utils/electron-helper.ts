@@ -9,6 +9,22 @@ export interface ElectronFixtures {
   testDirectory: string;
 }
 
+// Helper function to set directory in tests (bypasses readonly input)
+export async function setDirectory(page: Page, directory: string): Promise<void> {
+  await page.evaluate((dir) => {
+    const input = document.getElementById('directory') as HTMLInputElement;
+    if (input) {
+      input.value = dir;
+      // Trigger input and change events to validate form
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, directory);
+
+  // Wait a bit for form validation
+  await page.waitForTimeout(100);
+}
+
 export const test = base.extend<ElectronFixtures>({
   electronApp: async ({}, use) => {
     // Build the app if it hasn't been built yet
@@ -60,6 +76,9 @@ export const test = base.extend<ElectronFixtures>({
       const filePath = path.join(tempDir, file.path);
       fs.writeFileSync(filePath, file.content, 'utf8');
     }
+
+    // Small delay to ensure files are fully written to disk
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     await use(tempDir);
 

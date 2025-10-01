@@ -26,10 +26,10 @@
       </header>
 
       <!-- Search Panel -->
-      <main class="search-card flex-1 p-3 animate-slide-up overflow-hidden">
+      <main class="search-card flex-1 p-3 animate-slide-up min-h-0">
         <div class="compact-grid">
           <!-- Search Controls Column -->
-          <div class="compact-layout">
+          <div class="compact-layout min-h-0">
             <div class="space-y-1">
               <h2
                 class="text-base font-semibold text-gray-800 flex items-center gap-2 mb-3"
@@ -133,7 +133,7 @@
           </div>
 
           <!-- Results Column -->
-          <div class="flex flex-col">
+          <div class="flex flex-col min-h-0">
             <!-- Results Header -->
             <div class="flex items-center justify-between mb-3">
               <h2
@@ -163,12 +163,13 @@
 
             <!-- Results List -->
             <div
-              class="flex-1 border-2 border-gray-200 rounded-lg overflow-hidden bg-white"
+              class="flex-1 border-2 border-gray-200 rounded-lg bg-white overflow-y-auto min-h-0"
             >
-              <ul id="results-list" class="h-full overflow-y-auto">
+              <ul id="results-list" class="h-auto">
                 <!-- Empty State -->
                 <li
-                  class="flex flex-col items-center justify-center h-full text-center py-4 px-2"
+                  class="flex flex-col items-center justify-center text-center py-16 px-2"
+                  style="min-height: 300px;"
                 >
                   <div class="bg-gray-100 rounded-full p-3 mb-2">
                     <i class="fas fa-search text-lg text-gray-400"></i>

@@ -242,8 +242,10 @@ class SearchApp {
       this.loadSearchHistory();
 
       const result = await getElectronAPI().searchFiles(options);
+      console.log(`[DEBUG] Search completed. Success: ${result.success}, Result count: ${result.data?.length ?? 0}`);
       if (result.success && result.data) {
         this.resultItems = result.data;
+        console.log(`[DEBUG] Stored ${this.resultItems.length} results in resultItems`);
         this.displayResults(result.data);
         this.ui.loadingText.textContent = `Found ${result.data.length} results`;
       } else {
@@ -323,6 +325,7 @@ class SearchApp {
   }
 
   private displayResults(_results: SearchResult[]): void {
+    console.log(`[DEBUG] displayResults called with ${_results.length} results`);
     this.updateResultsDisplay();
   }
 
@@ -345,7 +348,8 @@ class SearchApp {
   private showEmptyState(): void {
     const li = document.createElement("li");
     li.className =
-      "flex flex-col items-center justify-center h-full text-center py-16 px-8";
+      "flex flex-col items-center justify-center text-center py-16 px-8";
+    li.style.minHeight = "300px";
 
     const iconContainer = document.createElement("div");
     iconContainer.className = "bg-gray-100 rounded-full p-6 mb-4";
@@ -370,6 +374,7 @@ class SearchApp {
   }
 
   private renderResultItems(results: SearchResult[]): void {
+    console.log(`[DEBUG] renderResultItems called with ${results.length} results`);
     const fragment = document.createDocumentFragment();
 
     results.forEach((result, index) => {
@@ -430,6 +435,8 @@ class SearchApp {
     });
 
     this.ui.resultsList.appendChild(fragment);
+    console.log(`[DEBUG] Appended ${fragment.childNodes.length} items to results list`);
+    console.log(`[DEBUG] Total items in DOM: ${this.ui.resultsList.children.length}`);
   }
 
   private getFileIcon(fileName: string): string {
@@ -492,7 +499,8 @@ class SearchApp {
     this.ui.resultsList.innerHTML = "";
     const li = document.createElement("li");
     li.className =
-      "flex flex-col items-center justify-center h-full text-center py-16 px-8";
+      "flex flex-col items-center justify-center text-center py-16 px-8";
+    li.style.minHeight = "300px";
 
     const iconContainer = document.createElement("div");
     iconContainer.className = "bg-red-100 rounded-full p-6 mb-4";
